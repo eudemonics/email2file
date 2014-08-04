@@ -1,5 +1,5 @@
 from __future__ import print_function
-import email, getpass, imaplib, re, sys, os, os.path, datetime
+import email, getpass, imaplib, re, sys, os, os.path, datetime, socket
 
 print('''
 \033[33m
@@ -325,147 +325,11 @@ def getimap(emailaddr, emailpass):
         
       print('too many logon failures. unable to log onto IMAP server.')
             
-if 'gmail.com' in emailaddr:
-
-   print('\033[32mGMAIL address found\033[0m')
-   print('attempting logon')
-
-   # connecting to IMAP
-   server = imaplib.IMAP4_SSL ('imap.gmail.com')
-
-   while True:
-
-      try:
-         loginstatus, logindata = server.login(emailaddr, emailpass)
-         if loginstatus == 'OK':
-            print('\033[32mlogin successful, fetching emails..\033[0m')
-
-      except:
-         pass
-         print('error: login failure')
-         emailaddr = raw_input('please enter email again --> ')
-         matchcred = re.search(r'^[_a-z0-9-]+(\.[_a-z0-9-]+)*@[a-z0-9-]+(\.[a-z0-9-]+)*(\.[a-z]{2,4})$', emailaddr)
-
-         if matchcred:
-            emailpass = getpass.getpass('enter password --> ')
-            print('attempting logon again')
-
-         else:
-            print('invalid email address')
-            emailaddr = raw_input('please enter email again --> ')
-            matchcred = re.search(r'^[_a-z0-9-]+(\.[_a-z0-9-]+)*@[a-z0-9-]+(\.[a-z0-9-]+)*(\.[a-z]{2,4})$', emailaddr)
-
-      else:
-         break
-     
-   server.list()
-
-   # CHOOSE INBOX OR ALL MAIL BY COMMENTING AND UNCOMMENTING BELOW
-   server.select('inbox') # connect to inbox
-   #server.select('[Gmail]/All Mail') # connect to all mail folder
-
-   result, uids = server.uid('SEARCH', None, "ALL")
-
-   # search and return unique IDs (UIDs)
-
-   for email_uid in uids[0].split():
-
-      result, data = server.uid('FETCH', email_uid, '(RFC822)')
-
-      body = data[0][1] # raw text of entire email
-
-      rootdir = 'output'
-      user_savename = emailaddr.rstrip("@gmail.com")
-      subdir = user_savename+"_gmail.com"
-      save_path = os.path.join(rootdir, subdir)
-         
-      if not os.path.exists(save_path):
-         os.makedirs(save_path)
-            
-      mbody = email.message_from_string(body)
-      
-      msgfrom = mbody['From']
-         
-      if mbody.is_multipart():
-         
-         ext = ".txt"
-         
-         for mpart in mbody.get_payload():
-         
-            if mpart.get_content_type() == 'text/html':
-               ext = ".htm"
-            
-            else:
-               ext = ".txt"
-         
-      file_name = user_savename+"-"+msgfrom[:25]+"-"+email_uid+ext
-            
-      complete_name = os.path.join(save_path, file_name)
-
-      if os.path.isfile(complete_name):
-         print(complete_name + ' already exists, skipping..')
-         continue
-
-      else:
-         file = open(complete_name, 'w')
-         file.write(body)
-         file.close()
-      
-         print('raw message data saved to new file: \033[31m' + complete_name + '\033[0m')
-
-#############
-   # TO FETCH MULTIPLE EMAILS AT ONCE
-
-   #result, uids = server.uid('SEARCH', None, "ALL")
-
-   #fetch_ids = ','.join(uids[0].split())
-   ##convert to comma separated list
-
-   #result, data = server.uid('FETCH', fetch_ids, '(RFC822)')
-   ##return all emails
-
-   #body = data[0][1]
-   #print body
-
-   print('\033[32m inbox contents successfully saved to file. YAY! \033[0m')
-
-   print('logging out..')
-
-   server.logout()
-
-   print('logout successful. exiting..')
-
-else:
+try:
    print('trying IMAP connection to server: \033[34mimap.' + emaildomain + '\033[0m' )
-
    getimap(emailaddr, emailpass)
-
-#############
-
-#############
-   # TO GET LATEST EMAIL BY UID
-
-   #latest_email_uid = items[0].split()[-1]
-
-   #result, data = server.uid('FETCH', latest_email_uid, '(RFC822)')
-   ##fetch email body (RFC822) for latest UID
-
-   #body = data[0][1] # raw text of entire email
-   #print body
-#############
-
-#############
-   # TO SEARCH LATEST SEQUENTIAL ID INSTEAD OF UNIQUE ID
-
-   #result, sids = mail.search(None, "ALL") 
-   #ids = sids[0] # sids is a list
-   #id_list = ids.split() # ids is a space separated string 
-   #latest_email_id = id_list[-1] # get the latest
-
-   #result, data = mail.fetch(latest_email_id, "(RFC822)")
-   ## fetch the email body (RFC822) for the given ID
- 
-   #body = data[0][1] # raw text of entire email
-#############
-
+   
+except socket.error, e:
+   print("Error opening IMAP connection: ", e)
+   
 sys.exit()
