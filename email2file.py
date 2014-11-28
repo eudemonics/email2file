@@ -1,6 +1,6 @@
-#!/usr/bin/python
+#!/usr/bin/env python
 ###
-##### EMAIL2FILE v1.2π OFFICIAL RELEASE
+##### EMAIL2FILE v1.2.1π OFFICIAL RELEASE
 ##### AUTHOR: vvn
 ##### to run, open terminal to script directory and enter "python email2file.py"
 ##### each inbox message is saved as a txt file in its respective account's directory within the 'output' subdirectory
@@ -74,19 +74,19 @@ if os.name == 'nt' or sys.platform == 'win32':
    try:
       import colorama
       colorama.init()
-      usecolor = "color"
+      usecolor = 'color'
       progintro = colorintro
    except:
       try:
          import tendo.ansiterm
-         usecolor = "color"
+         usecolor = 'color'
          progintro = colorintro
       except:
-         usecolor = "clean"
+         usecolor = 'clean'
          progintro = cleanintro
          pass
 else:
-   usecolor = "color"
+   usecolor = 'color'
    progintro = colorintro
    
 print(progintro)
@@ -99,7 +99,12 @@ emailaddr = raw_input('please enter email --> ')
 match = re.search(r'^[_a-z0-9-]+(\.[_a-z0-9-]+)*@[a-z0-9-]+(\.[a-z0-9-]+)*(\.[a-z]{2,4})$', emailaddr)
 
 if match:
-   print('\033[32m\nemail is valid\033[0m\n\n')
+   
+   if usecolor == 'color':
+      print('\033[32m\nemail is valid\033[0m\n\n')
+   else:
+      print('email is valid')
+      
    atdomain = re.search("@.*", emailaddr).group()
    emaildomain = atdomain[1:]
 
@@ -108,9 +113,15 @@ else:
 
    while not match and tries > 0:
    
-      print('\033[31minvalid email format\033[0m\n')
-      print('bad attempts: \033[33m' + str(6 - tries) + '\033[0m\n')
-      print('\033[36myou have ' + str(tries) + ' attempts remaining.\033[0m\n\n')
+      if usecolor == 'color':
+         print('\033[31minvalid email format\033[0m\n')
+         print('bad attempts: \033[33m' + str(6 - tries) + '\033[0m\n')
+         print('\033[36myou have ' + str(tries) + ' attempts remaining.\033[0m\n\n')
+      else:
+         print('invalid email format')
+         print('bad attempts: ' + str(6 - tries))
+         print('you have ' + str(tries) + ' attempts remaining.\n\n')
+         
       emailaddr = raw_input('please enter email again --> ')
       
       match = re.search(r'^[_a-z0-9-]+(\.[_a-z0-9-]+)*@[a-z0-9-]+(\.[a-z0-9-]+)*(\.[a-z]{2,4})$', emailaddr)
@@ -123,16 +134,29 @@ else:
          tries = tries - 1
         
    if match:
-      print('\n\033[32m email is valid \033[0m\n\n')
+      if usecolor == 'color':
+         print('\n\033[32m email is valid \033[0m\n\n')
+      else:
+         print('email is valid')
+         
       atdomain = re.search("@.*", emailaddr).group()
       emaildomain = atdomain[1:]
       
    else:
-      print('\033[31munhandled exception. aborting..\033[0m\n')
+      if usecolor == 'color':
+         print('\033[31munhandled exception. aborting..\033[0m\n')
+      else:
+         print('unhandled exception. aborting..')
+   
       sys.exit()
    
    if tries is 0:
-      print('\033[31m too many bad attempts using invalid format! \033[0m\n')
+      
+      if usecolor == 'color':
+         print('\033[31m too many bad attempts using invalid format! \033[0m\n')
+      else:
+         print('too many bad attempts using invalid format!')
+         
       print('aborting..')
       sys.exit()
                
@@ -412,11 +436,14 @@ def getimap(emailaddr, emailpass):
          break
 
       except server.error, e:
-      
          pass
-         print('\033[35mfailed connecting to IMAP server.\033[0m\n')
-         print('\033[31merror: \033[33m' + str(e) + '\033[0m\n\n')
-
+         if usecolor == 'color':
+            print('\033[35mfailed connecting to IMAP server.\033[0m\n')
+            print('\033[31merror: \033[33m' + str(e) + '\033[0m\n\n')
+         else:
+            print('failed connecting to IMAP server.')
+            print('error: ' + str(e))
+            
          attempts = attempts - 1              
 
          emailaddr = raw_input('please enter email again --> ')
@@ -431,12 +458,18 @@ def getimap(emailaddr, emailpass):
       continue
          
    if attempts is 0:
-      print('too many logon failures. unable to log onto IMAP server.')   
+      print('too many logon failures. unable to log onto IMAP server.')
+      print('quitting..')
+      sys.exit()
       
 emailpass = getpass.getpass('please enter password --> ')
             
 try:
-   print('\ntrying IMAP connection to server: \033[36mimap.' + emaildomain + '\033[0m' )
+   if usecolor == 'color':
+      print('\ntrying IMAP connection to server: \033[36mimap.' + emaildomain + '\033[0m' )
+   else:
+      print('\ntrying IMAP connection to server: imap.' + emaildomain)
+      
    getimap(emailaddr, emailpass)
    
 except socket.error, e:
