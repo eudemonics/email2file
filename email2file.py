@@ -1,29 +1,97 @@
 #!/usr/bin/python
 ###
-##### EMAIL2FILE v1.1π OFFICIAL RELEASE
-##### author: vvn
-##### download or copy & paste into blank text file and save as "email2file.py"
-##### to run, open terminal to script location and enter "python email2file.py"
-##### all files are written to unique email user folder within 'output' subdirectory
-##### attachments saved either in user folder or user's 'attachments' subfolder
-##### questions? bugs? suggestions? contact vvn at:
-##### vvn (at) eudemonics (dot) org
-##### support my work - by my music! http://dreamcorp.bandcamp.com
+##### EMAIL2FILE v1.2π OFFICIAL RELEASE
+##### AUTHOR: vvn
+##### to run, open terminal to script directory and enter "python email2file.py"
+##### each inbox message is saved as a txt file in its respective account's directory within the 'output' subdirectory
+##### attachments are saved either in user folder or user's 'attachments' subfolder
+##### for multiple email addresses, please use plain text file with one email address per line. if password is known, format text file with "email", "password" on each line.
+##### questions? bugs? suggestions? contact vvn at: vvn@notworth.it
+##### source code for stable releases should be available on my pastebin:
+##### http://pastebin.com/u/eudemonics
+##################################################
+##################################################
+##### USER LICENSE AGREEMENT & DISCLAIMER
+##### copyright (C) 2014  vvn <vvn@notworth.it>
+##### 
+##### This program is FREE software: you can use it, redistribute it and/or modify
+##### it as you wish. Copying and distribution of this file, with or without modification,
+##### are permitted in any medium without royalty provided the copyright
+##### notice and this notice are preserved. This program is offered AS-IS,
+##### WITHOUT ANY WARRANTY; without even the implied warranty of
+##### MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+##### GNU General Public License for more details.
+##################################################
+##################################################
+##### donate to the fund to help keep me alive. because life is expensive.
+##### BTC: 1M511j1CHR8x7RYgakNdw1iF3ike2KehXh
+##### https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_id=26PWMPCNKN28L
+##### but to really show your appreciation, you should buy my EP instead!
+##### and share it with everyone you know, and everyone you don't know.
+##### you can stream and purchase it at: http://dreamcorp.bandcamp.com
+##### (you might even enjoy listening to it)
+##### and like the facebook page: http://www.facebook.com/dreamcorporation
+##### questions, comments, feedback, bugs, complaints, death threats, marriage proposals?
+##### contact me at:
+##### vvn (at) notworth (dot) it
+##### stay tuned for new features: building functionality to support a list of email addresses, as well as a word list for the password brute force.
 
 from __future__ import print_function
 import email, base64, getpass, imaplib
-import re, sys, os, os.path, datetime, socket
+import re, sys, os, os.path, datetime, socket, time
 
-print('''
-\033[34m
-------------------------------------- \033[33m
-----------\033[36m EMAIL2FILE v1.1 \033[33m----------
------------\033[35m author : vvn \033[33m------------
+colorintro = '''
+\033[34m=====================================\033[33m
+----------\033[36m EMAIL2FILE v1.3 \033[33m----------
 -------------------------------------
+-----------\033[35m author : vvn \033[33m------------
+----------\033[32m vvn@notworth.it \033[33m----------
+\033[34m=====================================\033[33m
 ----\033[37m support my work: buy my EP! \033[33m----
 ---\033[37m http://dreamcorp.bandcamp.com \033[33m---
-\033[34m-------------------------------------\n\033[0m
-''')
+---\033[37m facebook.com/dreamcorporation \033[33m---
+------\033[32m thanks for the support! \033[33m------
+\033[34m=====================================\n\033[0m
+'''
+
+cleanintro = '''
+=====================================
+---------- EMAIL2FILE v1.3 ----------
+-------------------------------------
+----------- author : vvn ------------
+---------- vvn@notworth.it ----------
+=====================================
+---- support my work: buy my EP! ----
+--- http://dreamcorp.bandcamp.com ---
+--- facebook.com/dreamcorporation ---
+------ thanks for the support! ------
+=====================================
+'''
+
+global usecolor
+
+if os.name == 'nt' or sys.platform == 'win32':
+   try:
+      import colorama
+      colorama.init()
+      usecolor = "color"
+      progintro = colorintro
+   except:
+      try:
+         import tendo.ansiterm
+         usecolor = "color"
+         progintro = colorintro
+      except:
+         usecolor = "clean"
+         progintro = cleanintro
+         pass
+else:
+   usecolor = "color"
+   progintro = colorintro
+   
+print(progintro)
+
+time.sleep(0.9)
 
 emailaddr = raw_input('please enter email --> ')
 
