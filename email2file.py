@@ -1,8 +1,14 @@
 #!/usr/bin/env python
 #
+<<<<<<< HEAD
 ##### EMAIL2FILE v1.4 BETA
 ##### AUTHOR: vvn < vvn @ notworth dot it >
 ##### VERSION RELEASE: april 5, 2015
+=======
+##### EMAIL2FILE v1.3.1 BETA - sort of tested and working! password list option may not work yet..
+##### AUTHOR: vvn
+##### VERSION RELEASE: november 30, 2014
+>>>>>>> 00a18bdb21a9d0273f5f8850f907800692c97c25
 ##### save email lists in plain text format in script directory with one address per line.
 ##### you can also include the password, if known. just use "email@addy.com, password" instead.
 ##### if there are only a few email addresses, you can easily generate the file:
@@ -16,9 +22,15 @@
 ##### i even tried to remove all the ANSI codes for you windows users, so you'd better use it!
 ##### even better, if you are on windows, install the colorama module for python to support ANSI
 ##### if you have setuptools or pip installed, you can easily get it with "pip install colorama"
+<<<<<<< HEAD
 ##### each inbox message is saved as a txt file in its respective account's directory within the 'email-output' subdirectory of user home directory (or $HOME env path)
 ##### for example, example@email.com will output to a directory called 'example_email.com'
 ##### a file of all mail headers fetched from your inbox is also saved in the 'email-output' directory
+=======
+##### each inbox message is saved as a txt file in its respective account's directory within the 'output' subdirectory
+##### for example, example@email.com will output to a directory called 'example_email.com'
+##### a file of all mail headers fetched from your inbox is also saved in the 'output' directory
+>>>>>>> 00a18bdb21a9d0273f5f8850f907800692c97c25
 ##### it should be called example@email.com-headerlist-yyyy-mm-dd.txt
 ##### attachments are saved either in user folder or user's 'attachments' subfolder
 ##### questions? bugs? suggestions? contact vvn at: vvn@notworth.it
@@ -29,7 +41,11 @@
 ##################################################
 ##################################################
 ##### USER LICENSE AGREEMENT & DISCLAIMER
+<<<<<<< HEAD
 ##### copyright, copyleft (C) 2014-2015  vvn < vvn @ notworth . it >
+=======
+##### copyright, copyleft (C) 2014  vvn <vvn@notworth.it>
+>>>>>>> 00a18bdb21a9d0273f5f8850f907800692c97c25
 #####
 ##### This program is FREE software: you can use it, redistribute it and/or modify
 ##### it as you wish. Copying and distribution of this file, with or without modification,
@@ -52,12 +68,20 @@
 ##### there be only about a thousand lines of code after this -->
  
 from __future__ import print_function
+<<<<<<< HEAD
 import email, base64, getpass, imaplib, ast
+=======
+import email, base64, getpass, imaplib
+>>>>>>> 00a18bdb21a9d0273f5f8850f907800692c97c25
 import re, sys, os, os.path, datetime, socket, time, logging
 
 colorintro = '''
 \033[34m=====================================\033[33m
+<<<<<<< HEAD
 ----------\033[36m EMAIL2FILE v1.4 \033[33m----------
+=======
+---------\033[36m EMAIL2FILE v1.3.1 \033[33m---------
+>>>>>>> 00a18bdb21a9d0273f5f8850f907800692c97c25
 -------------------------------------
 -----------\033[35m author : vvn \033[33m------------
 ----------\033[32m vvn@notworth.it \033[33m----------
@@ -71,7 +95,11 @@ colorintro = '''
 
 cleanintro = '''
 =====================================
+<<<<<<< HEAD
 ---------- EMAIL2FILE v1.4 ----------
+=======
+--------- EMAIL2FILE v1.3.1 ---------
+>>>>>>> 00a18bdb21a9d0273f5f8850f907800692c97c25
 -------------------------------------
 ----------- author : vvn ------------
 ---------- vvn@notworth.it ----------
@@ -84,6 +112,10 @@ cleanintro = '''
 '''
 
 global usecolor
+<<<<<<< HEAD
+=======
+global server
+>>>>>>> 00a18bdb21a9d0273f5f8850f907800692c97c25
 
 if os.name == 'nt' or sys.platform == 'win32':
    try:
@@ -111,9 +143,14 @@ time.sleep(0.9)
 # CHECK IF SINGLE EMAIL (1) OR LIST OF MULTIPLE EMAIL ADDRESSES IS USED (2)
 print('''SINGLE EMAIL ADDRESS OR LIST OF MULTIPLE EMAIL ADDRESSES?
 list of multiple email addresses must be in text format
+<<<<<<< HEAD
 with one email address per line, with optional encoded password
 after a comma (example@domain.com, password)
 **CAN ALSO USE SEPARATE PASSWORD LIST**
+=======
+with one email address per line, with optional password
+after a comma (example@domain.com, password)
+>>>>>>> 00a18bdb21a9d0273f5f8850f907800692c97c25
 ''')
 qtyemail = raw_input('enter 1 for single email or 2 for multiple emails --> ')
 
@@ -141,7 +178,11 @@ else:
 def checklogin(emailaddr, emailpass, sslcon):
 
    global checkresp
+<<<<<<< HEAD
    efmatch = re.search(r'^[_a-z0-9-]+(\.[_a-z0-9-]+)*@[a-z0-9-]+(\.[a-z0-9-]+)*(\.[a-z]{2,9})$', emailaddr)
+=======
+   efmatch = re.search(r'^[_a-z0-9-]+(\.[_a-z0-9-]+)*@[a-z0-9-]+(\.[a-z0-9-]+)*(\.[a-z]{2,4})$', emailaddr)
+>>>>>>> 00a18bdb21a9d0273f5f8850f907800692c97c25
    if efmatch:
       if usecolor == 'color':
          validmail = '\033[32m\nemail is valid: %s \033[0m\n\n' % emailaddr
@@ -165,7 +206,11 @@ def checklogin(emailaddr, emailpass, sslcon):
          imap_port = 587
       
    if 'yes' in sslcon:
+<<<<<<< HEAD
       server = imaplib.IMAP4_SSL(imap_server, imap_port)
+=======
+      server = imaplib.IMAP4_SSL(imap_server)
+>>>>>>> 00a18bdb21a9d0273f5f8850f907800692c97c25
       
    else:
       server = imaplib.IMAP4(imap_server, imap_port)
@@ -225,6 +270,7 @@ def checklogin(emailaddr, emailpass, sslcon):
          
    except server.error as e:
       pass
+<<<<<<< HEAD
       print('IMAPLIB ERROR: %s' % str(e))
       logging.error('IMAPLIB ERROR: %s' % str(e))
       
@@ -232,6 +278,11 @@ def checklogin(emailaddr, emailpass, sslcon):
          checkresp = 'BAD'
       else:
          checkresp = 'ERROR'
+=======
+      print('IMAP SOCKET ERROR: %s' % str(e))
+      logging.error('IMAPLIB ERROR: %s' % server.error)
+      checkresp = 'ERROR'
+>>>>>>> 00a18bdb21a9d0273f5f8850f907800692c97c25
    
    except server.timeout:
       pass
@@ -246,7 +297,11 @@ def checklogin(emailaddr, emailpass, sslcon):
 def checkformat(emailaddr):
 
    # START WHILE LOOP TO CHECK EMAIL FORMAT FOR ERRORS BEFORE ATTEMPTING LOGIN
+<<<<<<< HEAD
    match = re.search(r'^[_a-z0-9-]+(\.[_a-z0-9-]+)*@[a-z0-9-]+(\.[a-z0-9-]+)*(\.[a-z]{2,9})$', emailaddr)      
+=======
+   match = re.search(r'^[_a-z0-9-]+(\.[_a-z0-9-]+)*@[a-z0-9-]+(\.[a-z0-9-]+)*(\.[a-z]{2,4})$', emailaddr)      
+>>>>>>> 00a18bdb21a9d0273f5f8850f907800692c97c25
    while not match:
       emailformat = 'bad'
       if usecolor == 'color':
@@ -255,7 +310,10 @@ def checkformat(emailaddr):
          print('invalid email format')
       emailaddr = raw_input('please enter email again --> ')
       emailpass = getpass.getpass('please enter password --> ')
+<<<<<<< HEAD
 
+=======
+>>>>>>> 00a18bdb21a9d0273f5f8850f907800692c97c25
    emailformat = 'good'
    return(emailformat)
 # END OF FUNCTION checkformat()
@@ -313,6 +371,7 @@ def decode_email(msgbody):
          
          if bool(filename):
         
+<<<<<<< HEAD
             homedir = os.path.expanduser("~")
             
             rootdir = os.path.join(homedir, 'email-output')
@@ -320,6 +379,9 @@ def decode_email(msgbody):
             if not os.path.exists(rootdir):
                os.makedirs(rootdir, 0755)
                
+=======
+            rootdir = 'output'
+>>>>>>> 00a18bdb21a9d0273f5f8850f907800692c97c25
             atdomain = re.search("@.*", emailaddr).group()
             emaildomain = atdomain[1:]
             i = len(emailaddr) - len(atdomain)
@@ -371,7 +433,10 @@ def getimap(emailaddr, emailpass, sslcon):
    
    imap_server = 'imap.' + emaildomain
    imap_port = 993
+<<<<<<< HEAD
    server = imaplib.IMAP4_SSL(imap_server, imap_port)
+=======
+>>>>>>> 00a18bdb21a9d0273f5f8850f907800692c97c25
    
    if 'no' in sslcon:
       imap_port = 143
@@ -439,6 +504,7 @@ def getimap(emailaddr, emailpass, sslcon):
             
                print('------------------------------------------------------------')
          
+<<<<<<< HEAD
             
             homedir = os.path.expanduser("~")
             
@@ -446,6 +512,9 @@ def getimap(emailaddr, emailpass, sslcon):
             
             if not os.path.exists(rootdir):
                os.makedirs(rootdir, 0755)
+=======
+            rootdir = 'output'
+>>>>>>> 00a18bdb21a9d0273f5f8850f907800692c97c25
       
             printdate = str(datetime.date.today())
 
@@ -499,10 +568,17 @@ def getimap(emailaddr, emailpass, sslcon):
                   ext = ".txt"
                   
                if isattach is False:
+<<<<<<< HEAD
                   file_name = user_save + "-" + email_uid + "-" + msgfrom[:35] + ext
         
                if file_name is None:
                   file_name = user_save + "-" + msgfrom[:35] + "-" + email_uid + ext
+=======
+                  file_name = user_save + "-" + email_uid + "-" + msgfrom[:25] + ext
+        
+               if file_name is None:
+                  file_name = user_save + "-" + msgfrom[:25] + "-" + email_uid + ext
+>>>>>>> 00a18bdb21a9d0273f5f8850f907800692c97c25
         
                complete_name = os.path.join(save_path, file_name)
                
@@ -625,7 +701,11 @@ def getimap(emailaddr, emailpass, sslcon):
             emailaddr = raw_input('please enter email again --> ')
             emailpass = getpass.getpass('please enter password --> ')
       
+<<<<<<< HEAD
             matchaddy = re.search(r'^[_a-z0-9-]+(\.[_a-z0-9-]+)*@[a-z0-9-]+(\.[a-z0-9-]+)*(\.[a-z]{2,9})$', emailaddr)
+=======
+            matchaddy = re.search(r'^[_a-z0-9-]+(\.[_a-z0-9-]+)*@[a-z0-9-]+(\.[a-z0-9-]+)*(\.[a-z]{2,4})$', emailaddr)
+>>>>>>> 00a18bdb21a9d0273f5f8850f907800692c97c25
                
             while not matchaddy and attempts > 1:
                print('\033[31m invalid email format \033[0m\n')
@@ -637,6 +717,7 @@ def getimap(emailaddr, emailpass, sslcon):
    if attempts is 0:
       print('too many logon failures. unable to log onto IMAP server. quitting..')
       sys.exit()
+<<<<<<< HEAD
 # END OF FUNCTION getimap(emailaddr, emailpass, sslcon)
 
 # FUNCTION FOR IMAP CONNECTION USING MULTIPLE ADDRESSES
@@ -678,19 +759,65 @@ def getimapmulti(emailaddr, emailpass, sslcon):
 
          if usecolor == 'color':
 
+=======
+
+# FUNCTION FOR IMAP CONNECTION USING MULTIPLE ADDRESSES
+def getimapmulti(emailaddr, emailpass, sslcon, loginresp):
+         
+   if 'OK' not in loginresp:
+   
+      atdomain = re.search("@.*", emailaddr).group()
+      emaildomain = atdomain[1:]
+   
+      imap_server = 'imap.' + emaildomain
+      imap_port = 993
+   
+      if 'no' in sslcon:
+         imap_port = 143
+   
+         if 'gmail.com' in emaildomain:
+            imap_port = 587
+      
+      if 'yes' in sslcon:
+         server = imaplib.IMAP4_SSL(imap_server)
+      
+      else:
+         server = imaplib.IMAP4(imap_server, imap_port)
+         
+      loginstatus, logindata = server.login(emailaddr, emailpass)
+      
+   while True:
+      try:
+         select_info = server.select('INBOX')
+         status, unseen = server.search(None, 'UNSEEN')
+         
+         typ, listdata = server.list()
+         
+         countunseen = len(unseen)
+
+         if usecolor == 'color':
+   
+>>>>>>> 00a18bdb21a9d0273f5f8850f907800692c97c25
             print("\n\033[35m%d UNREAD MESSAGES\033[0m" % len(unseen))
             print()
             print('Response code: \n\n\033[32m', typ)
             print('\033[0m\nFOLDERS:\n\n\033[33m', listdata)
             print('\033[34m\n\nlogin successful, fetching emails.. \033[0m\n\n')
+<<<<<<< HEAD
 
          else:
 
+=======
+   
+         else:
+   
+>>>>>>> 00a18bdb21a9d0273f5f8850f907800692c97c25
             print("%d UNREAD MESSAGES" % len(unseen))
             print()
             print('Response code: \n\n', typ)
             print('\nFOLDERS:\n\n', listdata)
             print('\n\nlogin successful, fetching emails.. \n\n')
+<<<<<<< HEAD
          
                         # server.list()
    
@@ -912,10 +1039,226 @@ def getimapmulti(emailaddr, emailpass, sslcon):
 # END OF FUNCTION getimapmulti(emailaddr, emailpass, sslcon)
 
 # MULTIPLE EMAIL ADDRESSES
+=======
+            
+                        # server.list()
+      
+            server.select()
+            result, msgs = server.search(None, 'ALL')
+      
+            ids = msgs[0]
+            id_list = ids.split()
+   
+            print(id_list)
+
+            if usecolor == 'color':
+
+               print('\033[37m------------------------------------------------------------\n\033[0m')
+            
+            else:
+         
+               print('------------------------------------------------------------')
+      
+            rootdir = 'output'
+   
+            printdate = str(datetime.date.today())
+
+            prev_file_name = emailaddr+"-headerlist-"+printdate+".txt"
+            prev_complete_name = os.path.join(rootdir, prev_file_name)
+      
+            for email_uid in id_list:
+
+               result, rawdata = server.fetch(email_uid, '(RFC822)')
+
+               rawbody = rawdata[0][1]
+      
+               m = email.message_from_string(rawbody)
+            
+               msgfrom = m['From'].replace('/', '-')
+         
+               body = decode_email(rawbody)
+      
+               emaildomain = atdomain[1:]
+               j = len(emailaddr) - len(atdomain)
+               user_save = emailaddr[:j]
+   
+               subdir =  user_save + "_" + emaildomain
+               save_path = os.path.join(rootdir, subdir)
+      
+               if not os.path.exists(save_path):
+                  os.makedirs(save_path)
+         
+               mbody = email.message_from_string(rawbody)
+      
+               if mbody.is_multipart():
+      
+                  ext = ".txt"
+      
+                  for mpart in mbody.get_payload():
+         
+                     if 'text' in mpart.get_content_type():
+                        ext = ".txt"
+                        isattach = False
+               
+                        if mpart.get_content_type() == 'text/html':
+                           ext = ".htm"
+                           isattach = False
+               
+                     else:
+                        file_name = mpart.get_filename()
+                        isattach = True
+             
+               else:
+                  isattach = False
+                  ext = ".txt"
+               
+               if isattach is False:
+                  file_name = user_save + "-" + email_uid + "-" + msgfrom[:25] + ext
+     
+               if file_name is None:
+                  file_name = user_save + "-" + msgfrom[:25] + "-" + email_uid + ext
+     
+               complete_name = os.path.join(save_path, file_name)
+            
+               dtnow = datetime.datetime.now()
+               dtyr = str(dtnow.year)
+               dtmo = str(dtnow.month)
+               dtday = str(dtnow.day)
+               dthr = str(dtnow.hour)
+               dtmin = str(dtnow.minute)
+            
+               dtdate = str(dtyr + "-" + dtmo + "-" + dtday)
+               dttime = str(dthr + "." + dtmin)
+                           
+               if os.path.isfile(complete_name):
+      
+                  if usecolor == 'color':
+               
+                     print('\n\033[33m' + complete_name + '\033[0m already exists, skipping.. \n\n')
+         
+                  else:
+               
+                     print(complete_name + 'already exists, skipping.. \n\n')
+                  
+               else:
+         
+                  if type(body) is str or type(body) is buffer and isattach is True:
+               
+                     if usecolor == 'color':
+                        print('\n\033[34mdownloading file: \033[33m' + str(file_name) + '\033[0m\n\n')
+                 
+                     else:
+                        print('downloading file: ' + str(file_name))
+                     
+                     bodyfile = open(complete_name, 'wb+')
+                     # bodyfile.seek(0)
+                     bodyfile.write(body)
+                     bodyfile.close()
+            
+                  else:
+                     bodyfile = open(complete_name, 'wb+')
+                     bodyfile.write("SENDER: \n")
+                     bodyfile.write(msgfrom)
+                     bodyfile.write('\n\n')
+                     # bodyfile.write('Decoded:\n\n')
+                     bodyfile.write(str(body))
+                     bodyfile.write('\n\nRAW MESSAGE DATA:\n\n')
+                     bodyfile.write(rawbody)
+                     bodyfile.write('\n\n')
+                     bodyfile.write('file saved: ' + dtdate + ', ' + dttime)
+                     bodyfile.write('\n\n')
+                     bodyfile.close()
+   
+                  if usecolor == 'color':
+               
+                     print('\033[36m\033[1mmessage data saved to new file: \033[35m' + complete_name + '\033[0m\n')
+            
+                  else:
+               
+                     print('message data saved to new file: ' + complete_name)
+            
+               if usecolor == 'color':
+
+                  print('\033[37m------------------------------------------------------------\033[0m\n')
+         
+                  resp, data = server.fetch(email_uid, '(UID FLAGS BODY.PEEK[HEADER.FIELDS (FROM SUBJECT DATE)])')
+                  print('\033[35m' + email_uid + '\033[0m\n')
+            
+               else:
+            
+                  print('------------------------------------------------------------\n')
+         
+                  resp, data = server.fetch(email_uid, '(UID FLAGS BODY.PEEK[HEADER.FIELDS (FROM SUBJECT DATE)])')
+                  print(email_uid)
+               
+               print(data[0][1] + '\n\n')
+               msgpreview = data[0][1]
+         
+               if not os.path.isfile(prev_complete_name):
+                  prevfile = open(prev_complete_name, 'wb+')
+               #   prevfile.write('Email headers for: ' + emailaddr + '\n\n')
+               #   prevfile.close()
+            
+               with open(prev_complete_name, 'a+b') as prevfile:   
+                  prevfile.write(email_uid)
+                  prevfile.write("\n\n")
+                  prevfile.write(msgpreview)
+                  prevfile.write("\n\n")
+                  # prevfile.close()
+                         
+               if usecolor == 'color':
+   
+                  print('\033[32minbox contents successfully saved to file. YAY! \033[0m\n')
+      
+               else:
+   
+                  print('inbox contents successfully saved to file. YAY!')
+      
+            if usecolor == 'color':
+               print('list of message previews saved as: \033[31m' + prev_complete_name + '\033[0m \n')
+            else:
+               print('list of message previews saved as: %s' % prev_complete_name)
+            
+            logging.info('INFO: inbox contents saved to file with preview file %s' % prev_complete_name)
+            print('logging out..\n')
+            logging.info('INFO: logging off IMAP server.')
+            server.logout()
+            print('logout successful. exiting application..\n')
+            logging.info('INFO: logout successful for %s. exiting application.' % emailaddr)
+            break
+            
+      except server.timeout:
+         pass
+         print('Socket timeout')
+         logging.error('ERROR: Socket timeout')
+         checkresp = 'TIMEOUT'
+         continue
+               
+      except server.error as e:
+
+         pass
+   
+         if usecolor == 'color':
+            print('\033[35mfailed connecting to IMAP server.\033[0m\n')
+            print('\033[31merror: \033[33m' + str(e) + '\033[0m\n\n')
+         else:
+            print('failed connecting to IMAP server.\n')
+            print('error: ' + str(e) + '\n\n')
+ 
+         if qtyemail == '1':        
+
+            emailaddr = raw_input('please enter email again --> ')
+            emailpass = getpass.getpass('please enter password --> ')
+            checkformat(emailaddr)
+            
+         continue
+      
+>>>>>>> 00a18bdb21a9d0273f5f8850f907800692c97c25
 if qtyemail == '2':
    emaillistfile = raw_input('please copy the email list file to the script directory, then enter filename --> ')
    while not os.path.isfile(emaillistfile):
       emaillistfile = raw_input('the file path specified does not exist or is not accessible. please check the file and enter again --> ')
+<<<<<<< HEAD
    
    ef = open(emaillistfile, "r")
    emailfile = ef.readlines()
@@ -924,11 +1267,15 @@ if qtyemail == '2':
    print("EMAIL ADDRESSES IN FILE: %s" % str(eflen))
    
    # USING PASSWORD LIST
+=======
+      
+>>>>>>> 00a18bdb21a9d0273f5f8850f907800692c97c25
    if usewordlist.lower() == 'y':
       pwlistfile = raw_input('please copy word list file to the script directory, then enter the filename --> ')
       
       while not os.path.isfile(pwlistfile):
          pwlistfile = raw_input('the path to the word list file you entered is not valid. please check the file and enter again --> ')
+<<<<<<< HEAD
          
       lnemail = ''
       lnpass = ''
@@ -1039,6 +1386,70 @@ if qtyemail == '2':
       if efcount > eflen:
          print("all emails and passwords have been processed.")
          sys.exit(0)
+=======
+      
+      ef = open(emaillistfile, "r")
+      for line in ef.readlines():
+   
+         if re.search(r'^[\,]$', line):
+
+            line = line.strip()
+            linevals = line.split(",")
+
+            lnemail = linevals[0]
+            lnpass = linevals[1]
+            print('using email address: ' + lnemail)
+            loginok = checklogin(lnemail, lnpass, sslcon)
+         
+            if 'OK' not in loginok:
+               print('login failure. skipping to next entry in list...')
+               continue
+            else:
+                  break
+         
+         else:
+      
+            print('using email address: ' + line)
+            lnemaile = line.strip()
+            pf = open(pwlistfile, "r")
+
+            for lnpass in pf.readlines():
+
+               loginok = checklogin(lnemail, lnpass, sslcon)
+
+               if 'OK' not in loginok:
+                  print('login failure. trying next entry...')
+                  continue
+    
+               else:
+                  break
+      
+         getimapmulti(lnemail, lnpass, sslcon, 'OK')
+  
+   else:
+
+      ef = open(emaillistfile, "r")
+      for line in ef.readlines():
+         lnemail = line
+         print('using email address: ' + lnemail)
+         lnpass = getpass.getpass('please enter password for above account --> ')
+         loginok = checklogin(lnemail, lnpass, sslcon)
+         print(loginok)
+         time.sleep(2)
+      
+         while 'OK' not in loginok:
+            lnpass = getpass.getpass('login failure. please check password and enter again --> ')
+            loginok = checklogin(lnemail, lnpass, sslcon)
+            print(loginok)
+            time.sleep(2)
+            if 'OK' in loginok:
+               break
+            else:
+               print('login failure. trying next entry..')
+               continue
+            
+         getimapmulti(lnemail, lnpass, sslcon, 'OK')
+>>>>>>> 00a18bdb21a9d0273f5f8850f907800692c97c25
 
 # SINGLE EMAIL ADDRESS
 else:
@@ -1046,7 +1457,11 @@ else:
    emailaddr = raw_input('please enter email address --> ')
    
    #VALIDATE EMAIL USING REGEX
+<<<<<<< HEAD
    match = re.search(r'^[_a-z0-9-]+(\.[_a-z0-9-]+)*@[a-z0-9-]+(\.[a-z0-9-]+)*(\.[a-z]{2,9})$', emailaddr)
+=======
+   match = re.search(r'^[_a-z0-9-]+(\.[_a-z0-9-]+)*@[a-z0-9-]+(\.[a-z0-9-]+)*(\.[a-z]{2,4})$', emailaddr)
+>>>>>>> 00a18bdb21a9d0273f5f8850f907800692c97c25
 
    if match:
       if usecolor == 'color':
@@ -1078,7 +1493,10 @@ else:
       
          else:
             tries = tries - 1
+<<<<<<< HEAD
             #tries -= 1
+=======
+>>>>>>> 00a18bdb21a9d0273f5f8850f907800692c97c25
      
       if match:
          if usecolor == 'color':
@@ -1107,6 +1525,7 @@ else:
    if usewordlist.lower == 'y':
             
       pf = open(pwlistfile, "r")
+<<<<<<< HEAD
       words = pf.readlines()
       total = len(words)
       count = 0
@@ -1157,6 +1576,26 @@ else:
                print("LOGIN SUCCESSFUL")
                getimapmulti(emailaddr, emailpass, sslcon)
                break
+=======
+    
+      for line in pf.readlines():
+    
+         emailpass = line
+         logging.info('INFO: checking login authentication for %s' % emailaddr)
+         loginok = checklogin(emailaddr, emailpass, sslcon)
+         loginok = str(loginok)
+       
+         if 'OK' not in loginok:
+            logging.info('INFO: bad password. skipping to next line.')
+            continue
+          
+         else:
+            logging.info('INFO: LOGIN to %s successful' % emailaddr)
+            server.select()
+            server.search(None, 'INBOX')
+            getimapmulti(emailaddr, emailpass, sslcon, 'OK')
+            break
+>>>>>>> 00a18bdb21a9d0273f5f8850f907800692c97c25
          
    else:
    
