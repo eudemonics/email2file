@@ -1,6 +1,8 @@
 #!/usr/bin/env python
 import base64, os, sys, re
 
+global encfile
+
 print('''
 ###############################################
 ###############################################
@@ -70,6 +72,20 @@ def gen_list():
          encfile = raw_input("invalid format. please enter a valid filename --> ")
       print("encoding each entry in password file..")
       encode_pass(origfile, encfile)
+      delsel = raw_input("delete the original unencoded password file? Y/N --> ")
+      while not re.match(r'^[nNyY]$', delsel):
+         delsel = raw_input("invalid selection. enter Y to delete or N to keep original unencoded file --> ")
+      if delsel.lower() == 'y':
+         try:
+            os.remove(origfile)
+            if os.path.isfile(origfile):
+               os.unlink(origfile)
+            print('%s deleted successfully.' % origfile)
+         except OSError, e: 
+            print ("Error: %s - %s." % (e.filename,e.strerror))
+      else:
+         if os.path.isfile(origfile):
+            print('%s contains sensitive data. please delete it manually ASAP.' % origfile)
    else:
       encfile = raw_input("please enter filename of encoded password list --> ")
       while not os.path.exists(encfile):
@@ -79,36 +95,34 @@ def gen_list():
          newfile = raw_input("invalid format. please enter a valid filename --> ")
       print("decoding each entry in password file %s..") % encfile 
       encode_pass(encfile, newfile)
+   def exitmenu():
+      exitsel = raw_input("enter 1 to run script again. enter 2 to run email2file script. enter 3 to print encoded/decoded data. to exit, enter 4 --> ")
 
-def exitmenu():
-   exitsel = raw_input("enter 1 to run script again. enter 2 to run email2file script. enter 3 to print encoded/decoded data. to exit, enter 4 --> ")
+      while not re.search(r'^[1-4]$', exitsel):
+         exitsel = raw_input("invalid entry. enter 1 to run script again, 2 to run email2file script, 3 to show encoded/decoded data, or 4 to exit --> ")
+   
+      if exitsel == '1':
+         gen_list()
+         exitmenu()
+   
+      elif exitsel == '2':
+         os.system('chmod +x email2file.py')
+         os.system('./email2file.py')
+   
+      elif exitsel == '3':
+         ef = open(encfile, "r+")
+         for n in ef.readlines():
+            print("encoded: %s" % n)
+            dectext = base64.b64decode(n)
+            print("decoded: %s" % dectext)
+         ef.close()
+         exitmenu()
 
-   while not re.search(r'^[1-4]$', exitsel):
-      exitsel = raw_input("invalid entry. enter 1 to run script again, 2 to run email2file script, 3 to show encoded/decoded data, or 4 to exit --> ")
-   
-   if exitsel == '1':
-      gen_list()
-      exitmenu()
-   
-   elif exitsel == '2':
-      os.system('chmod +x email2file.py')
-      os.system('./email2file.py')
-   
-   elif exitsel == '3':
-      ef = open(encfile, "r+")
-      for n in ef.readlines():
-         print("encoded: %s" % n)
-         dectext = base64.b64decode(n)
-         print("decoded: %s" % dectext)
-      ef.close()
-      exitmenu()
-
-   else:
-      print("goodbye!")
+      else:
+         print("goodbye!")
+   exitmenu()
    
 gen_list()
-
-exitmenu()
 
 print("exiting program..")
    
