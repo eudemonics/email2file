@@ -2,7 +2,7 @@
 #
 ##### EMAIL2FILE v1.4 BETA
 ##### AUTHOR: vvn < vvn @ notworth dot it >
-##### VERSION RELEASE: april 5, 2015
+##### VERSION RELEASE: April 5, 2015
 ##### save email lists in plain text format in script directory with one address per line.
 ##### you can also include the password, if known. just use "email@addy.com, password" instead.
 ##### if there are only a few email addresses, you can easily generate the file:
