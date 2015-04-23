@@ -1,43 +1,37 @@
 #!/usr/bin/env python
-# ENCRYPTLIST.PY - encryption for lists
+# ENCRYPTLISTWIN.PY - encryption for lists - windows version
 # author: vvn [ vvn @ notworth . it ]
 # latest version will be available here:
 # https://github.com/eudemonics/email2file.git
 
 import base64, hashlib, getpass, os, random, re, sys
-if os.name == 'nt' or sys.platform == 'win32':
-   os.system('python encryptlistwin.py')
+if (os.name == 'posix') or (sys.platform == 'darwin' or 'linux' or 'linux2'):
+   os.system('python encryptlist.py')
+
 from Crypto.Cipher import AES
 from Crypto import Random
 from Crypto.Util import Counter
-from ansilist import ac
 
 global encfile
 global encpass
 
-# BLOCK_SIZE: block size in bytes for cipher object. this can be 16, 24, or 32.
-# 32 bytes = 256 bits, 24 bytes = 192 bits, 16 bytes = 128 bits
-BLOCK_SIZE = 32
-# PADDING: any character used to stretch out a value to a multiple of BLOCK_SIZE
+BLOCK_SIZE = 16
 PADDING = '&'
 CRYPT_MODE = AES.MODE_CBC
-rounds = 1337
-keysize = 32
+rounds = 1121
+keysize = 16
 saltlen = random.randint(16,42)
 salt = os.urandom(saltlen)
 
-print(ac.BLKBGBLUE + '''
+print('''
 ###############################################
 ###############################################
 ############# #  # #  # #  # #  # #############
 #####                                     #####
-#####    ''' + ac.REDBGBEIGEBOLD + 'ENCRYPTLIST.PY FOR EMAIL2FILE' + ac.CLEAR + ac.BLKBGBLUE + '    #####' +
-'''
+#####    ENCRYPTLIST.PY FOR EMAIL2FILE    #####
 #####                                     #####
-#######           ''' + ac.BLKBGPINKBOLD + 'VERSION 0.1' + ac.CLEAR + ac.BLKBGBLUE + '           #######' + 
-'''
-#########           ''' + ac.BLKBGAQUABOLD + 'by: vvn' + ac.CLEAR + ac.BLKBGBLUE + '           #########' +
-'''
+#######           VERSION 0.1           #######
+#########           by: vvn           #########
 ###########                         ###########
 ############# #  # #  # #  # #  # #############
 ###############################################
@@ -45,35 +39,30 @@ print(ac.BLKBGBLUE + '''
 ###############################################
 ############# #  # #  # #  # #  # #############
 #####                                     #####
-#####            ''' + ac.BLKBGGREYBOLD + 'RELEASE DATE:' + ac.CLEAR + ac.BLKBGBLUE + '            #####' +
-'''
-#####           ''' + ac.BLKBGYELLOWBOLD + 'APRIL 23, 2015' + ac.CLEAR + ac.BLKBGBLUE + '            #####' +
-'''
+#####            RELEASE DATE:            #####
+#####           APRIL 23, 2015            #####
 #####                                     #####
 ############# #  # #  # #  # #  # #############
 ###############################################
-''' + ac.CLEAR)
+''')
 
 def encryption(encpass, fn, encfile):
 
    while not os.path.exists(fn):
       fn = raw_input("invalid path. please check file name and enter again --> ")
 
-   secretpadlen = 16 - (len(encpass) % 16)
+   secretpadlen = BLOCK_SIZE - (len(encpass) % BLOCK_SIZE)
    secret = encpass + (PADDING * secretpadlen)
    
    for i in range(0,rounds):
       cryptkey = hashlib.sha256(encpass+salt).digest()
    cryptkey = cryptkey[:keysize]
-   bcryptkey = base64.b64encode(cryptkey)
    cryptfile = open("secret.key", 'wb+')
-   cryptfile.write(bcryptkey)
+   cryptfile.write(cryptkey)
    cryptfile.close()
-   print('\nyour raw encryption key: ')
+   print('\nyour encryption key: ')
    print(cryptkey)
-   print('your base64 encoded key: %s' % bcryptkey)
-   current = os.getcwd()
-   print(ac.GREENBOLD + '\nYour encryption key has been saved to the current directory (' + ac.BLKBGGREYBOLD + current + ac.CLEAR + ac.GREENBOLD + ') as ' + ac.ORANGE + 'secret.key' + ac.GREENBOLD + '.\nYou should copy this file to another location to ensure you have a backup of it.\n' + ac.PINKBOLD + 'You will need the key to decrypt the file later.\n' + ac.CLEAR)
+   print('\nEncryption key saved to file as secret.key. You will need this to decrypt the string later.\n')
    
    pad = lambda a: a + (BLOCK_SIZE - len(a) % BLOCK_SIZE) * PADDING
    AES_Enc = lambda c, a: base64.b64encode(c.encrypt(pad(a)))
@@ -86,7 +75,7 @@ def encryption(encpass, fn, encfile):
       print('Encrypted string: %s' % encoded)
       ef.write(encoded)
       ef.write("\n")
-   print("\nencrypted strings written to: " + ac.AQUABOLD + " %s \n" + ac.CLEAR) % encfile
+   print("\nencrypted strings written to %s \n") % encfile
    ef.close()
    pf.close()
 
@@ -97,10 +86,10 @@ def decryption(encpass, encfile, newfile):
 
    AES_Dec = lambda c, e: c.decrypt(base64.b64decode(e)).rstrip(PADDING)
    cryptfile = open("secret.key", 'r+')
-   a = cryptfile.readline()
-   cryptkey = base64.b64decode(a)
+   cryptkey = cryptfile.readline()
+   #cryptkey = filter(None, a)
    cryptfile.close()
-   secretpadlen = 16 - (len(encpass) % 16)
+   secretpadlen = BLOCK_SIZE - (len(encpass) % BLOCK_SIZE)
    secret = encpass + (PADDING * secretpadlen)
    
    cipher = AES.new(cryptkey, CRYPT_MODE, secret)
@@ -112,7 +101,7 @@ def decryption(encpass, encfile, newfile):
       pf.write(decoded)
    pf.close()
    ef.close()
-   print("\ndecrypted lines written to: " + ac.PINK + " %s \n" + ac.CLEAR) % newfile
+   print("\ndecrypted lines written to %s \n") % newfile
 
 def gen_list():
    selection = raw_input("enter 1 to encrypt or 2 to decrypt a password list --> ")
@@ -124,8 +113,6 @@ def gen_list():
       while not os.path.exists(origfile):
          origfile = raw_input("cannot find the file specified. please check path and enter correct filename --> ")
       encpass = getpass.getpass("enter the secret passphrase --> ")
-      while len(encpass) > 16:
-         encpass = getpass.getpass("the passphrase you have entered exceeds the 128-bit length. please enter a different passphrase of 16 characters or less --> ")
       encpass2 = getpass.getpass("confirm the secret passphrase --> ")
       while not encpass == encpass2:
          print("the passphrases entered did not match.")
@@ -172,30 +159,33 @@ def gen_list():
          exitmenu()
    
       elif exitsel == '2':
-         os.system('chmod +x email2file.py')
-         os.system('./email2file.py')
+         os.system('icacls email2file.py /grant Everyone:F')
+         os.system('python email2file.py')
    
       elif exitsel == '3':
          AES_Dec = lambda c, e: c.decrypt(base64.b64decode(e)).rstrip(PADDING)
          cryptfile = open("secret.key", 'r+')
-         a = cryptfile.readline()
-         cryptkey = base64.b64decode(a)
+         a = cryptfile.readlines()
+         key = filter(None, a)
+         for line in a:
+            key = filter(None, line)
          cryptfile.close()
-         secretpadlen = 16 - (len(encpass) % 16)
+         cryptkey = key
+         secretpadlen = BLOCK_SIZE - (len(encpass) % BLOCK_SIZE)
          secret = encpass + (PADDING * secretpadlen)
          cipher = AES.new(cryptkey, CRYPT_MODE, secret)
-         print(ac.BLUE + "------------------------------------------------------------" + ac.CLEAR)
+         print("------------------------------------------------------------")
          ef = open(encfile, "r+")
          for line in ef.readlines():
             decoded = AES_Dec(cipher, line)
-            print(ac.BEIGE + "encrypted: " + ac.ORANGE + line + ac.CLEAR)
-            print(ac.BEIGE + "decrypted: " + ac.GREEN + decoded + ac.CLEAR)
-            print(ac.BLUE + "------------------------------------------------------------" + ac.CLEAR)
+            print("encrypted: %s" % line)
+            print("decrypted: %s" % decoded)
+            print("------------------------------------------------------------")
          ef.close()
          exitmenu()
 
       else:
-         print(ac.AQUA + "goodbye!" + ac.CLEAR)
+         print("goodbye!")
    exitmenu()
    
 gen_list()
