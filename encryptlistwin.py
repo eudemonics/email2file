@@ -7,6 +7,7 @@
 import base64, hashlib, getpass, os, random, re, sys
 if (os.name == 'posix') or (sys.platform == 'darwin' or 'linux' or 'linux2'):
    os.system('python encryptlist.py')
+   sys.exit()
 
 from Crypto.Cipher import AES
 from Crypto import Random
@@ -148,45 +149,46 @@ def gen_list():
          newfile = raw_input("invalid format. please enter a valid filename --> ")
       print("\ndecrypting each entry in password file %s..") % encfile 
       decryption(encpass, encfile, newfile)
+      
    def exitmenu():
-      exitsel = raw_input("enter 1 to run script again. enter 2 to run email2file script. enter 3 to print encoded/decoded data. to exit, enter 4 --> ")
+   exitsel = raw_input("enter 1 to run encryption script again. enter 2 to run email2file script. enter 3 to print encoded/decoded data. to exit, enter 4 --> ")
 
-      while not re.search(r'^[1-4]$', exitsel):
-         exitsel = raw_input("invalid entry. enter 1 to run script again, 2 to run email2file script, 3 to show encoded/decoded data, or 4 to exit --> ")
-   
-      if exitsel == '1':
-         gen_list()
-         exitmenu()
-   
-      elif exitsel == '2':
-         os.system('icacls email2file.py /grant Everyone:F')
-         os.system('python email2file.py')
-   
-      elif exitsel == '3':
-         AES_Dec = lambda c, e: c.decrypt(base64.b64decode(e)).rstrip(PADDING)
-         cryptfile = open("secret.key", 'r+')
-         a = cryptfile.readlines()
-         key = filter(None, a)
-         for line in a:
-            key = filter(None, line)
-         cryptfile.close()
-         cryptkey = key
-         secretpadlen = BLOCK_SIZE - (len(encpass) % BLOCK_SIZE)
-         secret = encpass + (PADDING * secretpadlen)
-         cipher = AES.new(cryptkey, CRYPT_MODE, secret)
+   while not re.search(r'^[1-4]$', exitsel):
+      exitsel = raw_input("invalid entry. enter 1 to run encryption script again, 2 to run email2file script, 3 to show encoded/decoded data, or 4 to exit --> ")
+
+   if exitsel == '1':
+      gen_list()
+
+   elif exitsel == '2':
+      os.system('icacls email2file.py /grant Everyone:F')
+      os.system('python email2file.py')
+      sys.exit()
+
+   elif exitsel == '3':
+      AES_Dec = lambda c, e: c.decrypt(base64.b64decode(e)).rstrip(PADDING)
+      cryptfile = open("secret.key", 'r+')
+      a = cryptfile.readlines()
+      key = filter(None, a)
+      for line in a:
+         key = filter(None, line)
+      cryptfile.close()
+      cryptkey = key
+      secretpadlen = BLOCK_SIZE - (len(encpass) % BLOCK_SIZE)
+      secret = encpass + (PADDING * secretpadlen)
+      cipher = AES.new(cryptkey, CRYPT_MODE, secret)
+      print("------------------------------------------------------------")
+      ef = open(encfile, "r+")
+      for line in ef.readlines():
+         decoded = AES_Dec(cipher, line)
+         print("encrypted: %s" % line)
+         print("decrypted: %s" % decoded)
          print("------------------------------------------------------------")
-         ef = open(encfile, "r+")
-         for line in ef.readlines():
-            decoded = AES_Dec(cipher, line)
-            print("encrypted: %s" % line)
-            print("decrypted: %s" % decoded)
-            print("------------------------------------------------------------")
-         ef.close()
-         exitmenu()
+      ef.close()
+      exitmenu()
 
-      else:
-         print("goodbye!")
-   exitmenu()
+   else:
+      print("goodbye!")
+      sys.exit()
    
 gen_list()
 

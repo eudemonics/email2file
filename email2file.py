@@ -1,8 +1,8 @@
 #!/usr/bin/env python
 #
-##### EMAIL2FILE v1.4 BETA
+##### EMAIL2FILE v1.5 BETA
 ##### AUTHOR: vvn < vvn @ notworth dot it >
-##### VERSION RELEASE: April 5, 2015
+##### VERSION RELEASE: April 23, 2015
 ##### save email lists in plain text format in script directory with one address per line.
 ##### you can also include the password, if known. just use "email@addy.com, password" instead.
 ##### if there are only a few email addresses, you can easily generate the file:
@@ -57,7 +57,7 @@ import re, sys, os, os.path, datetime, socket, time, traceback, logging
 
 colorintro = '''
 \033[34m=====================================\033[33m
-----------\033[36m EMAIL2FILE v1.4 \033[33m----------
+----------\033[36m EMAIL2FILE v1.5 \033[33m----------
 -------------------------------------
 -----------\033[35m author : vvn \033[33m------------
 ----------\033[32m vvn@notworth.it \033[33m----------
@@ -71,7 +71,7 @@ colorintro = '''
 
 cleanintro = '''
 =====================================
----------- EMAIL2FILE v1.4 ----------
+---------- EMAIL2FILE v1.5 ----------
 -------------------------------------
 ----------- author : vvn ------------
 ---------- vvn@notworth.it ----------
@@ -111,9 +111,14 @@ time.sleep(0.9)
 # CHECK IF SINGLE EMAIL (1) OR LIST OF MULTIPLE EMAIL ADDRESSES IS USED (2)
 print('''SINGLE EMAIL ADDRESS OR LIST OF MULTIPLE EMAIL ADDRESSES?
 list of multiple email addresses must be in text format
-with one email address per line, with optional encoded password
-after a comma (example@domain.com, password)
-**CAN ALSO USE SEPARATE PASSWORD LIST**
+with one email address per line. PASSWORD LIST with one
+password per line in plain text or base64 encoded format
+supported. ENCRYPTION MODULE provided in current release
+and will be fully implemented in a future release. To
+encrypt password list, run \033[33mpython encryptlist.py\033[0m.
+***ALSO SUPPORTS EMAIL AND PASSWORD IN A SINGLE FILE:***
+one email address and one password per line separated
+by a comma (example@domain.com, password)
 ''')
 qtyemail = raw_input('enter 1 for single email or 2 for multiple emails --> ')
 
@@ -678,6 +683,7 @@ def getimapmulti(emailaddr, emailpass, sslcon):
    while attempts <= 20:
 
       try:
+         attempts += 1
          select_info = server.select('INBOX')
          status, unseen = server.search(None, 'UNSEEN')
 
@@ -912,7 +918,6 @@ def getimapmulti(emailaddr, emailpass, sslcon):
          logging.error('SOCKET ERROR: %s' % str(e))
          checkresp = 'SOCKETERROR'
          attempts += 1
-         continue
       
       except socket.timeout as e:
          pass
@@ -920,7 +925,6 @@ def getimapmulti(emailaddr, emailpass, sslcon):
          time.sleep(5.0)
          checkresp = 'TIMEOUT'
          attempts += 1
-         continue
       
       except TypeError as e:
          pass
@@ -928,7 +932,6 @@ def getimapmulti(emailaddr, emailpass, sslcon):
          logging.error('TYPE ERROR: %s' % e)
          checkresp = 'TYPEERROR'
          attempts += 1
-         continue
 
       except server.error as e:
          pass
@@ -947,6 +950,7 @@ def getimapmulti(emailaddr, emailpass, sslcon):
                emailaddr = raw_input('please enter email again --> ')
                emailpass = getpass.getpass('please enter password --> ')
                checkformat(emailaddr)
+               attempts += 1
                logging.info('INFO: trying again with user-supplied email %s' % emailaddr)
                print('RETRYING with %s..' % emailaddr)
                pass
@@ -966,33 +970,41 @@ def getimapmulti(emailaddr, emailpass, sslcon):
             logging.info('INFO: Socket KEEPALIVE already on')
 
          try:
-            sock.connect(imap_server, imap_port)
+            sock.connect(imap_server)
+            attempts += 1
 
          except socket.error:
+            pass
             print('Socket connection failed')
             traceback.print_exc()
             time.sleep(5.0)
+            attempts += 1
             continue
 
          print('Socket connection established!')
 
          while 1:
             try:
-                req = sock.recv(6)
+               req = sock.recv(6)
 
             except socket.timeout:
-                print('Socket timeout, retrying connection..')
-                time.sleep( 5.0)
-                # traceback.print_exc()
-                continue
+               pass
+               print('Socket timeout, retrying connection..')
+               time.sleep( 5.0)
+               attempts += 1
+               continue
+               # traceback.print_exc()
 
             except:
-                traceback.print_exc()
-                print('Other Socket error. Trying to recreate socket..')
-                # break from loop
-                break
+               pass
+               traceback.print_exc()
+               print('Other Socket error. Trying to recreate socket..')
+               attempts += 1
+               # break from loop
+               break
 
             print('received ', req)
+            continue
 
          try:
             sock.close()
@@ -1019,128 +1031,166 @@ if qtyemail == '2':
 
       while not os.path.isfile(pwlistfile):
          pwlistfile = raw_input('the path to the word list file you entered is not valid. please check the file and enter again --> ')
+         
+      encryptsel = raw_input('is the word list encrypted using encryptlist.py? enter Y/N --> ')
+      
+      while not re.search(r'^[nNyY]$', encryptsel):
+         encryptsel = raw_input('invalid selection. enter Y if word list was encrypted using encryptlist.py or N if not encrypted --> ')
+         
+      if encryptsel.lower() == 'y':
+         print('*** the encryption module, though fully functional, is still in the process of being integrated with the full email2file program. ***')
+         cryptlaunch = raw_input('enter 1 to decrypt your word list using encryptlist.py. enter 2 if you already have the decrypted file. --> ')
+         while not re.match(r'^[12]$', cryptlaunch):
+            cryptlaunch = raw_input('invalid selection. enter 1 to decrypt your word list. enter 2 if your word list is already decrypted. --> ')
+         if cryptlaunch == '1':
+            raw_input('press ENTER to launch encryptlist.py...')
+            os.system('chmod +x encryptlist.py')
+            os.system('python encryptlist.py')
 
-      b64sel = raw_input('is the word list base64-encoded? Y/N --> ')
+      else:
+      
+         b64sel = raw_input('is the word list base64-encoded? Y/N --> ')
 
-      while not re.search(r'^[nNyY]$', b64sel):
-         b64sel = raw_input('invalid selection. enter Y if word list is base64-encoded or N if plain text --> ')
+         while not re.search(r'^[nNyY]$', b64sel):
+            b64sel = raw_input('invalid selection. enter Y if word list is base64-encoded or N if plain text --> ')
 
-      if b64sel.lower() == 'n':
+         if b64sel.lower() == 'n':
+         
+            gotoencsel = raw_input('storing passwords in plaintext is a security risk. would you like to encrypt or base64-encode your password list? Y/N --> ')
 
-         gotoencsel = raw_input('storing passwords in plaintext is a security risk. would you like to base64-encode your password list? Y/N --> ')
+            while not re.search(r'^[yYnN]$', gotoencsel):
 
-         while not re.search(r'^[yYnN]$', gotoencsel):
+               gotoencsel = raw_input('invalid selection. enter Y to run script to encode a password list, or enter N to continue --> ')
 
-            gotoencsel = raw_input('invalid selection. enter Y to run script to encode a password list, or enter N to continue --> ')
-
-         if gotoencsel.lower() == 'y':
-            print('launching encodelist.py...')
-            os.system('chmod +x encodelist.py')
-            os.system('python encodelist.py')
+            if gotoencsel.lower() == 'y':
+               launchsel = raw_input('enter 1 to encrypt your word list using encryptlist.py. enter 2 to base64 encode with encodelist.py. --> ')
+               while not re.search(r'^[12]$', launchsel):
+                  launchsel = raw_input('invalid selection. enter 1 to encrypt list or 2 to base64 encode list. --> ')
+               if launchsel == '1':
+                  print("launching encryptlist.py..")
+                  os.system('chmod +x encryptlist.py')
+                  os.system('python encryptlist.py')
+               else:
+                  print("launching encodelist.py..")
+                  os.system('chmod +x encodelist.py')
+                  os.system('python encodelist.py')
 
          else:
-            print('*** to base64-encode your list in the future, run \'python encpass.py\' ***')
+            print('*** to encrypt your list in the future, run \'python encryptlist.py\'. to  base64-encode your list in the future, run \'python encodelist.py\' ***')
 
       lnemail = ''
       lnpass = ''
 
-      efcount = 0
       if usecolor == 'color':
-         print("\n\033[31mEMAIL ADDRESSES IN FILE:\033[0m %s" % str(eflen))
+         print("\n\033[31mEMAIL ADDRESSES IN FILE:\033[0m %s \n" % str(eflen))
       else:
-         print("EMAIL ADDRESSES IN FILE: %s" % str(eflen))
+         print("EMAIL ADDRESSES IN FILE: %s \n" % str(eflen))
 
-      while efcount <= eflen:
+      efcount = 1
+      lenfile = len(emailfile)
+      
+      for index,line in enumerate(emailfile):
+      
+         print("PROCESSING EMAIL:\033[36;1m #%s \033[0m" % str(index))
+         print("TOTAL EMAIL ADDRESSES:\033[36;1m %s \033[0m\n" % str(lenfile))
+         
+         # WITH EMAIL AND PASSWORD IN SAME FILE
+         if re.search(r'^[\,]$', line):
 
-         for line in emailfile:
+            line = line.strip()
+            linevals = line.split(",")
 
-            efcount += 1
+            lnemail = linevals[0]
+            lnemail = str(lnemail.strip())
+            lnpass = linevals[1]
+            if b64sel.lower() == 'y':
+               lnpass = base64.b64decode(lnpass)
 
-            # WITH EMAIL AND PASSWORD IN SAME FILE
-            if re.search(r'^[\,]$', line):
+            lnpass = lnpass.strip()
+            lnpass = lnpass.replace("\n","")
+            lnpass = str(lnpass)
 
-               line = line.strip()
-               linevals = line.split(",")
+            if usecolor == 'color':
+               print('\033[36musing email address: \033[0m' + lnemail)
+            
+            else:
+               print('using email address: ' + lnemail)
+               
+            loginok = checklogin(lnemail, lnpass, sslcon)
 
-               lnemail = linevals[0]
-               lnemail = str(lnemail.strip())
-               lnpass = linevals[1]
+            if 'OK' not in loginok:
+               print('login failure. skipping to next entry in list...')
+               logging.debug('DEBUG: LOGIN to %s failed' % emailaddr)
+               continue
+            else:
+               logging.info('INFO: LOGIN to %s successful' % emailaddr)
+               getimapmulti(lnemail, lnpass, sslcon)
+
+         else:
+         
+            if usecolor == 'color':
+               print('\n\033[34m------------------------------------------------------------\033[0m\n')
+               print('\n\033[36musing email address: \033[0m' + line)
+            
+            else:
+               print('------------------------------------------------------------\n')
+               print('\nusing email address: ' + line)
+               
+            lnemail = line.strip()
+            pf = open(pwlistfile, "r+")
+
+            wordlist = pf.readlines()
+            listlen = len(wordlist)
+
+            tries = 0
+
+            for lnpass in wordlist:
+
                if b64sel.lower() == 'y':
                   lnpass = base64.b64decode(lnpass)
-
                lnpass = lnpass.strip()
                lnpass = lnpass.replace("\n","")
                lnpass = str(lnpass)
-
-               if usecolor == 'color':
-                  print('\033[36musing email address: \033[0m' + lnemail)
-               
-               else:
-                  print('using email address: ' + lnemail)
-                  
                loginok = checklogin(lnemail, lnpass, sslcon)
+               tries += 1
 
-               if 'OK' not in loginok:
-                  print('login failure. skipping to next entry in list...')
-                  logging.debug('DEBUG: LOGIN to %s failed' % emailaddr)
-                  continue
-               else:
-                  logging.info('INFO: LOGIN to %s successful' % emailaddr)
-                  getimapmulti(lnemail, lnpass, sslcon)
-
-            else:
-            
-               if usecolor == 'color':
-                  print('\033[38m------------------------------------------------------------\033[0m\n')
-                  print('\n\033[36musing email address: \033[0m' + line)
-               
-               else:
-                  print('------------------------------------------------------------\n')
-                  print('\nusing email address: ' + line)
-                  
-               lnemail = line.strip()
-               pf = open(pwlistfile, "r+")
-
-               wordlist = pf.readlines()
-               listlen = len(wordlist)
-
-               tries = 0
-
-               for lnpass in wordlist:
-
-                  if b64sel.lower() == 'y':
-                     lnpass = base64.b64decode(lnpass)
-                  lnpass = lnpass.strip()
-                  lnpass = lnpass.replace("\n","")
-                  lnpass = str(lnpass)
-                  loginok = checklogin(lnemail, lnpass, sslcon)
-                  tries += 1
-
-                  if 'OK' not in loginok and tries <= listlen:
-                     #print('tried: %s') % str(lnpass)
-                     print('login failure. trying next entry...')
-                     if usecolor == 'color':
-                        print('\033[33mtries: \033[35m' + str(tries) + '\033[33m out of \033[35m %s \033[0m' % str(listlen))
-                     else:
-                        print('tries: ' + str(tries) + ' out of ' + str(listlen))
-
+               if 'OK' not in loginok and tries <= listlen:
+                  #print('tried: %s') % str(lnpass)
+                  print('login failure. trying next entry...')
+                  if usecolor == 'color':
+                     print('\033[33mtries: \033[35m' + str(tries) + '\033[33m out of \033[35m %s \033[0m' % str(listlen))
                   else:
-                     logging.info('INFO: LOGIN to %s successful!' % lnemail)
-                     getimapmulti(lnemail, lnpass.strip(), sslcon)
-                     tries = 100
-                     break
+                     print('tries: ' + str(tries) + ' out of ' + str(listlen))
+                  continue
 
-               if tries > listlen and tries < 100:
-                  print('exhausted all entries in password list.')
+               else:
+                  logging.info('INFO: LOGIN to %s successful!' % lnemail)
+                  getimapmulti(lnemail, lnpass.strip(), sslcon)
+                  tries = 100
                   break
+
+            if tries >= listlen and tries < 100:
+               if usecolor == 'color':
+                  print('\n\033[35mexhausted all entries in password list.\n\033[0m')
+               else:
+                  print('\nexhausted all entries in password list.\n')
+               continue
+         
+         efcount += 1
+         countdown = countdown - 1
+               
+         if countdown <= 0:
+            print('finished processing all email addresses and passwords.')
+            break
+            
 
    # NOT USING PASSWORD LIST
    else:
-
+   
+      efcount = 1
+      
       while efcount <= eflen:
          for line in ef.readlines():
-
-            efcount += 1
 
             # WITH EMAIL AND PASSWORD IN SAME FILE
             if re.search(r'^[\,]$', line):
@@ -1174,6 +1224,8 @@ if qtyemail == '2':
                else:
                   print('login failure. trying next entry..')
                   continue
+
+            efcount += 1
 
             logging.info('INFO: LOGIN to %s successful' % lnemail)
             getimapmulti(lnemail, lnpass, sslcon)
