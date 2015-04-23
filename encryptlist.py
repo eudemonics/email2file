@@ -1,4 +1,9 @@
 #!/usr/bin/env python
+# ENCRYPTLIST.PY - encryption for lists
+# author: vvn [ vvn @ notworth . it ]
+# latest version will be available here:
+# https://github.com/eudemonics/email2file.git
+
 import base64, hashlib, getpass, os, random, re, sys
 from Crypto.Cipher import AES
 from Crypto import Random
@@ -32,7 +37,7 @@ print('''
 ############# #  # #  # #  # #  # #############
 #####                                     #####
 #####            RELEASE DATE:            #####
-#####           APRIL 18, 2015            #####
+#####           APRIL 23, 2015            #####
 #####                                     #####
 ############# #  # #  # #  # #  # #############
 ###############################################
