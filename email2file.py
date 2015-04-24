@@ -1094,12 +1094,24 @@ if qtyemail == '2':
       
          emindex = index + 1
          
+         countdown -= 1
+         
          empercent = float(emindex) / float(lenfile)
-         progress = str(empercent * 100) + "%"
-      
-         print("PROGRESS:\033[36;1m %s \033[0m" % str(emindex))
-         print("TOTAL EMAIL ADDRESSES:\033[36;1m %s \033[0m\n" % str(lenfile))
-         print("PERCENTAGE COMPLETE:\033[36;1m %s \033[0m\n" % str(progress))
+         empercent2 = empercent - .05
+         pr2 = int(empercent2 * 100)
+         pr = int(empercent * 100)
+         
+         progress = lambda a: str(a) + "%"
+         
+         if usecolor == 'color':
+            print("PROGRESS:\033[36;1m %s \033[0m" % str(emindex))
+            print("TOTAL EMAIL ADDRESSES:\033[36;1m %s \033[0m\n" % str(lenfile))
+            print("PERCENT COMPLETE:\033[36;1m %s \033[0m\n" % progress(pr2))
+         
+         else:
+            print("PROGRESS: %s" % str(emindex))
+            print("TOTAL EMAIL ADDRESSES: %s \n" % str(lenfile))
+            print("PERCENT COMPLETE: %s \n" % progress(pr2))
          
          # WITH EMAIL AND PASSWORD IN SAME FILE
          if re.search(r'^[\,]$', line):
@@ -1137,7 +1149,7 @@ if qtyemail == '2':
          
             if usecolor == 'color':
                print('\n\033[34m------------------------------------------------------------\033[0m\n')
-               print('\n\033[36musing email address: \033[0m' + line)
+               print('\n\033[36musing email address:\033[37m %s\033[0m' % line)
             
             else:
                print('------------------------------------------------------------\n')
@@ -1172,26 +1184,34 @@ if qtyemail == '2':
 
                else:
                   logging.info('INFO: LOGIN to %s successful!' % lnemail)
+                  print("Logged in to %s!\n" % lnemail)
                   getimapmulti(lnemail, lnpass.strip(), sslcon)
                   tries = 100
                   break
 
             if tries >= listlen and tries < 100:
                if usecolor == 'color':
-                  print('\n\033[35mexhausted all entries in password list for \033[33m %s.\n\033[0m' % lnemail)
+                  print('\n\033[35mexhausted all entries in password list for:\033[33m %s.\n\033[0m' % lnemail)
                else:
                   print('\nexhausted all entries in password list for %s.\n' % lnemail)
                continue
          
          efcount += 1
-         countdown = countdown - 1
-         print("remaining email addresses to process: %s" % str(countdown))
+         
+         if usecolor == 'color':
+            print("remaining email addresses to process:\033[32;1m %s \033[0m\n" % str(countdown))
+            print("PERCENT COMPLETE:\033[36;1m %s \033[0m\n" % progress(pr))
+            print('\n\033[34m------------------------------------------------------------\033[0m\n')
+         else:
+            print("PERCENT COMPLETE: %s \n" % progress(pr))
                
-         if countdown <= 0:
-            print('finished processing all email addresses and passwords.')
+         if countdown <= 0 or efcount >= lenfile:
+            if usecolor == 'color':
+               print('\033[41;1m\033[33mfinished processing all email addresses and passwords.\033[0m\n')
+            else:
+               print('finished processing all email addresses and passwords.\n')
             break
             
-
    # NOT USING PASSWORD LIST
    else:
    
@@ -1345,7 +1365,7 @@ else:
             # PASSWORD NOT CORRECTLY FORMATTED
             elif 'BAD' in loginok:
                emailpass = emailpass.strip()
-               print("password format error. trying again..")
+               print("password format error. trying again..\n")
                loginok = checklogin(emailaddr, emailpass, sslcon)
                loginok = str(loginok)
                if 'OK' in loginok:
@@ -1356,6 +1376,7 @@ else:
 
             else:
                logging.info('INFO: LOGIN to %s successful' % emailaddr)
+               print("LOGIN to %s successful!\n" % emailaddr)
                getimapmulti(emailaddr, emailpass, sslcon)
                break
 
