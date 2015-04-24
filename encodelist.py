@@ -1,4 +1,12 @@
 #!/usr/bin/env python
+# ENCODELIST.PY - base64 encoding for lists integrated with EMAIL2FILE
+# *** BASE64 IS NOT A SECURE ALGORITHM FOR PROTECTING YOUR DATA ***
+# for enhanced security and greater protection of your sensitive data,
+# please use ENCRYPTLIST.PY (also included with this program)
+# author: vvn [ vvn @ notworth . it ]
+# latest version will be available here:
+# https://github.com/eudemonics/email2file.git
+
 import base64, os, sys, re
 
 global encfile
@@ -8,10 +16,10 @@ print('''
 ###############################################
 ############# #  # #  # #  # #  # #############
 #####                                     #####
-#####   ENCODELIST.PY FOR EMAIL2FILE.PY   #####
+#####     ENCODELIST.PY FOR EMAIL2FILE    #####
 #####                                     #####
 #######           VERSION 0.1           #######
-#########           by: vvn           #########
+#########  by: vvn [vvn@notworth.it]  #########
 ###########                         ###########
 ############# #  # #  # #  # #  # #############
 ###############################################
@@ -20,7 +28,7 @@ print('''
 ############# #  # #  # #  # #  # #############
 #####                                     #####
 #####            RELEASE DATE:            #####
-#####           APRIL 09, 2015            #####
+#####           APRIL 24, 2015            #####
 #####                                     #####
 ############# #  # #  # #  # #  # #############
 ###############################################
@@ -108,6 +116,7 @@ def gen_list():
       elif exitsel == '2':
          os.system('chmod +x email2file.py')
          os.system('./email2file.py')
+         sys.exit()
    
       elif exitsel == '3':
          ef = open(encfile, "r+")
@@ -121,8 +130,33 @@ def gen_list():
       else:
          print("goodbye!")
    exitmenu()
+
+print('''
+
+
+***** BASE64 ENCODING IS NOT A SECURE METHOD *****   
+         FOR STORING YOUR SENSITIVE DATA.
+
+for increased protection, you have the option to
+secure your word list using 256-bit AES encryption. 
+you may do this by entering \'python encryptlist.py\'
+into a terminal under the same working directory.
+ 
+ 
+
+to run this script now and encrypt instead, enter 1.''')
+
+selscript = raw_input("to continue with base64 encoding, enter 2. --> ")
+
+while not re.match(r'^[12]$', selscript):
+   selscript = raw_input("invalid selection. to run encryption instead, enter 1. to continue with base64 encoding, enter 2. --> ")
    
-gen_list()
+if selscript == '1':
+   os.system('python encryptlist.py')
+   sys.exit()
+   
+else:
+   gen_list()
 
 print("exiting program..")
    
