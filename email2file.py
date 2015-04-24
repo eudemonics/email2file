@@ -109,13 +109,13 @@ print(progintro)
 time.sleep(0.9)
 
 # CHECK IF SINGLE EMAIL (1) OR LIST OF MULTIPLE EMAIL ADDRESSES IS USED (2)
-print('''SINGLE EMAIL ADDRESS OR LIST OF MULTIPLE EMAIL ADDRESSES?
+print('''\033[34;1mSINGLE EMAIL ADDRESS OR LIST OF MULTIPLE EMAIL ADDRESSES?\033[0m
 list of multiple email addresses must be in text format
 with one email address per line. PASSWORD LIST with one
 password per line in plain text or base64 encoded format
 supported. ENCRYPTION MODULE provided in current release
 and will be fully implemented in a future release. To
-encrypt password list, run \033[33mpython encryptlist.py\033[0m.
+encrypt password list, run \033[36;1mpython encryptlist.py\033[0m.
 ***ALSO SUPPORTS EMAIL AND PASSWORD IN A SINGLE FILE:***
 one email address and one password per line separated
 by a comma (example@domain.com, password)
@@ -970,7 +970,7 @@ def getimapmulti(emailaddr, emailpass, sslcon):
             logging.info('INFO: Socket KEEPALIVE already on')
 
          try:
-            sock.connect(imap_server)
+            sock.connect(imap_server, imap_port)
             attempts += 1
 
          except socket.error:
@@ -1088,11 +1088,18 @@ if qtyemail == '2':
 
       efcount = 1
       lenfile = len(emailfile)
+      countdown = lenfile
       
       for index,line in enumerate(emailfile):
       
-         print("PROCESSING EMAIL:\033[36;1m #%s \033[0m" % str(index))
+         emindex = index + 1
+         
+         empercent = float(emindex) / float(lenfile)
+         progress = str(empercent * 100) + "%"
+      
+         print("PROGRESS:\033[36;1m %s \033[0m" % str(emindex))
          print("TOTAL EMAIL ADDRESSES:\033[36;1m %s \033[0m\n" % str(lenfile))
+         print("PERCENTAGE COMPLETE:\033[36;1m %s \033[0m\n" % str(progress))
          
          # WITH EMAIL AND PASSWORD IN SAME FILE
          if re.search(r'^[\,]$', line):
@@ -1171,13 +1178,14 @@ if qtyemail == '2':
 
             if tries >= listlen and tries < 100:
                if usecolor == 'color':
-                  print('\n\033[35mexhausted all entries in password list.\n\033[0m')
+                  print('\n\033[35mexhausted all entries in password list for \033[33m %s.\n\033[0m' % lnemail)
                else:
-                  print('\nexhausted all entries in password list.\n')
+                  print('\nexhausted all entries in password list for %s.\n' % lnemail)
                continue
          
          efcount += 1
          countdown = countdown - 1
+         print("remaining email addresses to process: %s" % str(countdown))
                
          if countdown <= 0:
             print('finished processing all email addresses and passwords.')
