@@ -24,7 +24,8 @@ keysize = 16
 saltlen = random.randint(16,42)
 salt = os.urandom(saltlen)
 
-print('''
+def intro():
+   print('''
 ###############################################
 ###############################################
 ############# #  # #  # #  # #  # #############
@@ -55,15 +56,26 @@ def encryption(encpass, fn, encfile):
    secretpadlen = BLOCK_SIZE - (len(encpass) % BLOCK_SIZE)
    secret = encpass + (PADDING * secretpadlen)
    
-   for i in range(0,rounds):
-      cryptkey = hashlib.sha256(encpass+salt).digest()
-   cryptkey = cryptkey[:keysize]
-   cryptfile = open("secret.key", 'wb+')
-   cryptfile.write(cryptkey)
+   if os.path.isfile("secret.key"):
+      cryptfile = open("secret.key", 'r')
+      bcryptkey = cryptfile.readline()
+      cryptkey = base64.b64decode(bcryptkey)
+      print('\nUsing previously generated encryption key stored as secret.key..\n')
+   else:
+      for i in range(0,rounds):
+         cryptkey = hashlib.sha256(encpass+salt).digest()
+      cryptkey = cryptkey[:keysize]
+      bcryptkey = base64.b64encode(cryptkey)
+      cryptfile = open("secret.key", 'wb+')
+      cryptfile.write(bcryptkey)
+      print('\nEncryption key saved to file as secret.key. You will need this to decrypt the string later.\n')
+   
    cryptfile.close()
-   print('\nyour encryption key: ')
+   
+   print('\nyour raw encryption key: ')
    print(cryptkey)
-   print('\nEncryption key saved to file as secret.key. You will need this to decrypt the string later.\n')
+   print('your base64 encoded key: %s' % bcryptkey)
+   current = os.getcwd()
    
    pad = lambda a: a + (BLOCK_SIZE - len(a) % BLOCK_SIZE) * PADDING
    AES_Enc = lambda c, a: base64.b64encode(c.encrypt(pad(a)))

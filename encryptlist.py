@@ -63,18 +63,26 @@ def encryption(encpass, fn, encfile):
    secretpadlen = 16 - (len(encpass) % 16)
    secret = encpass + (PADDING * secretpadlen)
    
-   for i in range(0,rounds):
-      cryptkey = hashlib.sha256(encpass+salt).digest()
-   cryptkey = cryptkey[:keysize]
-   bcryptkey = base64.b64encode(cryptkey)
-   cryptfile = open("secret.key", 'wb+')
-   cryptfile.write(bcryptkey)
+   if os.path.isfile("secret.key"):
+      cryptfile = open("secret.key", 'r')
+      bcryptkey = cryptfile.readline()
+      cryptkey = base64.b64decode(bcryptkey)
+      print(ac.GREENBOLD + '\nUsing previously generated encryption key stored as ' + ac.ORANGE + 'secret.key.\n' + ac.CLEAR)
+   else:
+      for i in range(0,rounds):
+         cryptkey = hashlib.sha256(encpass+salt).digest()
+      cryptkey = cryptkey[:keysize]
+      bcryptkey = base64.b64encode(cryptkey)
+      cryptfile = open("secret.key", 'wb+')
+      cryptfile.write(bcryptkey)
+      print(ac.GREENBOLD + '\nYour encryption key has been saved to the current directory (' + ac.BLKBGGREYBOLD + current + ac.CLEAR + ac.GREENBOLD + ') as ' + ac.ORANGE + 'secret.key' + ac.GREENBOLD + '.\nYou should copy this file to another location to ensure you have a backup of it.\n' + ac.PINKBOLD + 'You will need the key to decrypt the file later.\n' + ac.CLEAR)
+   
    cryptfile.close()
+   
    print('\nyour raw encryption key: ')
    print(cryptkey)
    print('your base64 encoded key: %s' % bcryptkey)
    current = os.getcwd()
-   print(ac.GREENBOLD + '\nYour encryption key has been saved to the current directory (' + ac.BLKBGGREYBOLD + current + ac.CLEAR + ac.GREENBOLD + ') as ' + ac.ORANGE + 'secret.key' + ac.GREENBOLD + '.\nYou should copy this file to another location to ensure you have a backup of it.\n' + ac.PINKBOLD + 'You will need the key to decrypt the file later.\n' + ac.CLEAR)
    
    pad = lambda a: a + (BLOCK_SIZE - len(a) % BLOCK_SIZE) * PADDING
    AES_Enc = lambda c, a: base64.b64encode(c.encrypt(pad(a)))
