@@ -972,7 +972,8 @@ def getimapmulti(emailaddr, emailpass, imap_server, sslcon):
          attempts += 1
          
          if re.search(r'socket error: EOF$', str(e)):
-            print('all emails appear to be processed. exiting now..')
+            checkresp = 'EOF'
+            print('socket reporting EOF error. terminating application, try restarting..')
             print('thanks for using EMAIL2FILE!')
          else:
             if usecolor == 'color':
