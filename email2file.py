@@ -153,12 +153,11 @@ print('''\033[34;1mSINGLE EMAIL ADDRESS OR LIST OF MULTIPLE EMAIL ADDRESSES?\033
 list of multiple email addresses must be in text format
 with one email address per line. PASSWORD LIST with one
 password per line in plain text or base64 encoded format
-supported. ENCRYPTION MODULE provided in current release
-and will be fully implemented in a future release. To
+supported. ENCRYPTION MODULE also now fully supported! To
 encrypt password list, run \033[36;1mpython encryptlist.py\033[0m.
 ***ALSO SUPPORTS EMAIL AND PASSWORD IN A SINGLE FILE:***
-one email address and one password per line separated
-by a comma (example@domain.com, password)
+one email address + one password (plaintext or base64 encoded)
+per line separated by a comma (example@domain.com, password)
 ''')
 qtyemail = raw_input('enter 1 for single email or 2 for multiple emails --> ')
 
