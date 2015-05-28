@@ -973,8 +973,11 @@ def getimapmulti(emailaddr, emailpass, imap_server, sslcon):
          
          if re.search(r'socket error: EOF$', str(e)):
             checkresp = 'EOF'
-            print('socket reporting EOF error. terminating application, try restarting..')
-            print('thanks for using EMAIL2FILE!')
+            if usecolor == 'color':
+               print(ac.OKBLUE + '\nsocket reporting EOF error. trying again after 10 seconds..\n' + ac.CLEAR)
+            else:
+               print('\nsocket reporting EOF error. trying again after 10 seconds.. \n')
+            time.sleep(10)
          else:
             if usecolor == 'color':
                print('\033[35mfailed to connect to IMAP server.\033[0m\n')
@@ -983,17 +986,22 @@ def getimapmulti(emailaddr, emailpass, imap_server, sslcon):
                print('failed connecting to IMAP server.\n')
                print('ERROR: ' + str(e) + '\n')
             
-         if qtyemail == '1':
+         if qtyemail == '1' and 'OK' not in checkresp:
             while True and attempts <= 20:
-               emailaddr = raw_input('please enter email again --> ')
-               emailpass = getpass.getpass('please enter password --> ')
-               checkformat(emailaddr)
+               loginok = checklogin(emailaddr, emailpass, imap_server, sslcon)
+               if 'OK' in loginok:
+                  getimap(emailaddr, emailpass, imap_server, sslcon)
+                  break
+               else:
+                  emailaddr = raw_input('please enter email again --> ')
+                  emailpass = getpass.getpass('please enter password --> ')
                attempts += 1
                logging.info('INFO: trying again with user-supplied email %s' % emailaddr)
                print('RETRYING with %s..' % emailaddr)
-               pass
-      
+            
       except:
+         pass
+         
          # start with a socket at 30-second timeout
          sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
          sock.settimeout(30.0)
@@ -1067,7 +1075,7 @@ def getimapmulti(emailaddr, emailpass, imap_server, sslcon):
          continue
       
       return checkresp
-# END OF FUNCTION getimapmulti(emailaddr, emailpass, sslcon)
+# END OF FUNCTION getimapmulti(emailaddr, emailpass, imap_server, sslcon)
 
 # MULTIPLE EMAIL ADDRESSES
 if qtyemail == '2':
@@ -1149,6 +1157,7 @@ if qtyemail == '2':
          print(ac.YELLOWBOLD + pwlistfile + ac.CLEAR)
       else:
          print(pwlistfile)
+      print('')
 
       lnemail = ''
       lnpass = ''
