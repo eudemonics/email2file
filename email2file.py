@@ -1,48 +1,55 @@
 #!/usr/bin/env python
 #
-##### EMAIL2FILE v1.666 BETA
+##### EMAIL2FILE v1.777 BETA
 ##### AUTHOR: vvn < vvn @ notworth dot it >
-##### VERSION RELEASE: May 28, 2015
+##### VERSION RELEASE: June 14, 2015
 #####
 ##### SAVE EMAIL LISTS AS PLAIN TEXT format in script directory with one address per line.
-##### you can include the password, if known, as a base64-encoded string separated by
-##### a comma. just use "email@addy.com, encoded_password" on each line instead.
+##### you can include the password, if known, as a base64-encoded string 
+##### separated by a comma. just use "email@addy.com, encoded_password"
+##### on each line instead.
 #####
 ##### if there are only a few email addresses, you can easily generate the file:
 ##### open a terminal or MS-DOS window to the script directory, then enter:
 ##### echo "your@email.com" >> emails.txt
 ##### repeat entering the above command for each email you want to use.
 ##### when prompted to enter the email list file name, enter "emails.txt".
-##### PASSWORD LISTS SHOULD BE ONLY ONE WORD PER LINE. they can also be base64-encoded.
+#####
+##### PASSWORD LISTS SHOULD BE ONLY ONE WORD PER LINE.
+##### they can also be base64-encoded or encrypted. you can either run
+##### "python encodelist.py" to b64-encode or "python encryptlist.py" to
+##### encrypt the list, or select the option to encode or encrypt the list
+##### while running this script (email2file.py).
 ##### 
 ##### ENCRYPTION NOW FULLY WORKING FOR PASSWORD LISTS!
-##### the feature has not been fully integrated in the main script!
+##### the feature has now been fully integrated in the main script!
 ##### use the encrypt feature to safely store your password lists,
 ##### and decrypt them for use with the script. it is highly recommended
 ##### that you delete the plaintext files after script completes.
 #####
-##### TO RUN SCRIPT: open terminal to script directory and enter "python email2file.py"
+##### TO RUN SCRIPT: open terminal to script directory and enter:
+##### "python email2file.py"
 ##### PLEASE USE PYTHON 2.7.X AND NOT PYTHON 3 OR YOU WILL GET SYNTAX ERRORS!
 #####
 ##### works best on OSX and linux systems, but you can try it on windows.
-##### i even tried to remove ANSI codes for you windows users, so you'd better use it!
-#####
-##### even better, if you are on windows, install the colorama or ansiterm module for
-##### python to support ANSI colors.
-##### if you have setuptools or pip installed, you can easily get it with:
-##### "sudo pip install colorama"
-##### you can get pip by entering: "sudo easy_install pip"
-##### each inbox message is saved as a TXT or HTM file, depending on the text encoding
-##### of the original email message. the files can be found in their respective account's
-##### subfolder within the 'email-output' folder in your user HOME directory
-##### (or the currently configured $HOME env path)
+##### i even went to the trouble of trying to remove ANSI color codes for you
+##### windows users, so you'd better use it! if you are on windows, you can
+##### install the colorama or ansiterm python module to support ANSI colors.
+##### if you have setuptools or pip installed, you can easily get it by 
+##### opening a MS-DOS window as administrator and typing the following:
+##### "pip install colorama" or "pip install ansiterm"
+##### you can get pip by entering: "easy_install pip"
+##### depending on the text encoding of the original email, each message
+##### is saved as a TXT or HTM file. the files can be found in the
+##### respective account subfolder within the 'email-output' directory
+##### in your user HOME directory or the configured $HOME env path.
 ##### for example, a message from sender@email.com with subject "test"
-##### in rich text format received at your@email.com will output to:
-##### ~/email-output/your_email.com/your-01-"sender" <sender@email.com> .htm
-##### where ~ is your HOME directory path
+##### in rich text format received at user@email.com will output to:
+##### ~/email-output/user_email.com/01-"sender" <sender@email.com> .htm
+##### where ~ is your $HOME or %USERPROFILE% directory path.
 #####
 ##### a file of all mail headers is also saved in the 'email-output' directory.
-##### it should be called example@email.com-headerlist-yyyy-mm-dd.txt
+##### it should be called user@email.com-headerlist-yyyy-mm-dd.txt
 #####
 ##### attachments are saved either in account folder or 'attachments' subfolder.
 #####
@@ -80,12 +87,12 @@
 ##### you can stream and purchase it at: dreamcorp.bandcamp.com
 ##### (you might even enjoy listening to it)
 ##### questions, comments, feedback, bugs, complaints, death threats, marriage proposals?
-##### contact me at:
-##### vvn (at) notworth (dot) it
+##### contact me at: lost @ nobody [dot] ninja
 ##### there be only about a thousand lines of code after this -->
 
 from __future__ import print_function
 import email, base64, getpass, imaplib, threading
+from email.header import decode_header
 import re, sys, os, os.path, datetime, socket, time, traceback, logging
 from threading import Thread, Timer
 from Crypto.Cipher import AES
@@ -95,10 +102,10 @@ from ansilist import ac
 
 colorintro = '''
 \033[34m=====================================\033[33m
----------\033[36m EMAIL2FILE v1.666 \033[33m---------
+---------\033[36m EMAIL2FILE v1.777 \033[33m---------
 -------------------------------------
 -----------\033[35m author : vvn \033[33m------------
-----------\033[32m vvn@notworth.it \033[33m----------
+---------\033[32m lost@nobody.ninja \033[33m---------
 \033[34m=====================================\033[33m
 ----\033[37m support my work: buy my EP! \033[33m----
 ---\033[37m http://dreamcorp.bandcamp.com \033[33m---
@@ -109,10 +116,10 @@ colorintro = '''
 
 cleanintro = '''
 =====================================
---------- EMAIL2FILE v1.666 ---------
+--------- EMAIL2FILE v1.777 ---------
 -------------------------------------
 ----------- author : vvn ------------
----------- vvn@notworth.it ----------
+--------- lost@nobody.ninja ---------
 =====================================
 ---- support my work: buy my EP! ----
 --- http://dreamcorp.bandcamp.com ---
@@ -122,6 +129,12 @@ cleanintro = '''
 '''
 
 global usecolor
+
+today = datetime.datetime.now()
+today = str(today)[:10]
+logfile = 'email2file-' + today + '.log'
+
+logging.basicConfig(filename=logfile)
 
 if os.name == 'nt' or sys.platform == 'win32':
    os.system('icacls encryptlist.py /grant %USERNAME%:F')
@@ -426,7 +439,7 @@ def decode_email(msgbody):
    return decoded
 # END OF FUNCTION decode_email()
 
-# FUNCTION TO LOG ONTO IMAP SERVER FOR SINGLE EMAIL ADDRESS
+# FUNCTION TO LOG ONTO IMAP SERVER AND GET EMAIL
 def getimap(emailaddr, emailpass, imap_server, sslcon):
 
    imap_port = 993
@@ -459,7 +472,9 @@ def getimap(emailaddr, emailpass, imap_server, sslcon):
                print("\n\033[35m%d UNREAD MESSAGES\033[0m" % len(unseen))
                print()
                print('Response code: \n\033[32m', typ)
-               print('\033[0m\nFOLDERS:\n\033[33m', listdata)
+               print('\033[0m\nFOLDERS:\n\033[33m')
+               for l in listdata:
+                  print(str(l), '\n')
                print('\033[34m\nlogin successful, fetching emails.. \033[0m\n')
 
             else:
@@ -467,7 +482,9 @@ def getimap(emailaddr, emailpass, imap_server, sslcon):
                print("%d UNREAD MESSAGES" % len(unseen))
                print()
                print('Response code: \n', typ)
-               print('\nFOLDERS:\n', listdata)
+               print('\nFOLDERS:\n')
+               for l in listdata:
+                  print(str(l), '\n')
                print('\nlogin successful, fetching emails.. \n')
 
             logging.info('INFO: LOGIN successful for %s.' % emailaddr)
@@ -482,14 +499,17 @@ def getimap(emailaddr, emailpass, imap_server, sslcon):
 
             ids = msgs[0]
             id_list = ids.split()
-
-            print(id_list)
+            latest_id = int(id_list[-1])
+            first_id = int(id_list[0])
 
             if usecolor == 'color':
 
+               print(ac.OKGREEN + "TOTAL MESSAGES: " + ac.OKPINK + str(latest_id) + ac.CLEAR + "\n")
                print('\033[37m------------------------------------------------------------\n\033[0m')
 
             else:
+            
+               print("TOTAL MESSAGES: " + str(latest_id))
 
                print('------------------------------------------------------------')
 
@@ -506,18 +526,32 @@ def getimap(emailaddr, emailpass, imap_server, sslcon):
             prev_file_name = emailaddr+"-headerlist-"+printdate+".txt"
             prev_complete_name = os.path.join(rootdir, prev_file_name)
 
-            for email_uid in id_list:
-
+            for email_uid in reversed(id_list):
+               
                result, rawdata = server.fetch(email_uid, '(RFC822)')
 
-               rawbody = rawdata[0][1]
+               rawbody = rawdata[0][1].strip()
 
                m = email.message_from_string(rawbody)
 
                msgfrom = m['From'].replace('/', '-')
-
+               msgfrom = msgfrom.replace('<', '')
+               msgfrom = msgfrom.replace('>', '')
+               msgsubject = m['Subject'].replace('/', '-')
+               decodedsubject = decode_header(msgsubject)[0]
+               decodedfrom = decode_header(msgfrom)[0]
+               if (decodedsubject[1] != None):
+                  msgsubject = unicode(msgsubject, decodedsubject[1])
+               if (decodedfrom[1] != None):
+                  msgfrom = unicode(msgfrom, decodedfrom[1])
+               msgsubject = msgsubject[25:].strip()
+               msgsubject = msgsubject.encode('utf-8')
+               msgfrom = msgfrom[25:].strip()
+               msgfrom = msgfrom.encode('utf-8')
+               
                body = decode_email(rawbody)
 
+               atdomain = re.search("@.*", emailaddr).group()
                emaildomain = atdomain[1:]
                j = len(emailaddr) - len(atdomain)
                user_save = emailaddr[:j]
@@ -553,10 +587,10 @@ def getimap(emailaddr, emailpass, imap_server, sslcon):
                   ext = ".txt"
 
                if isattach is False:
-                  file_name = user_save + "-" + email_uid + "-" + msgfrom[:35] + ext
+                  file_name = email_uid + "-" + msgfrom[:25] + "-" +  msgsubject[:35] + ext
 
                if file_name is None:
-                  file_name = user_save + "-" + msgfrom[:35] + "-" + email_uid + ext
+                  file_name = email_uid + "-" + msgfrom[:25] + "-" + msgsubject[:35] + ext
 
                complete_name = os.path.join(save_path, file_name)
 
@@ -655,7 +689,25 @@ def getimap(emailaddr, emailpass, imap_server, sslcon):
          # EXIT LOOP IF SUCCESSFULLY AUTHENTICATED
          attempts = -1
          break
+      
+      except server.abort as e:
+         pass
+         logging.error('IMAPLIB SERVER ABORT: %s' % str(e))
+         checkresp = 'ABORT'
 
+         if usecolor == 'color':
+            print('\033[32mconnection to IMAP server aborted.\033[0m\n')
+            print('\033[36mIMAPLIB ERROR: \033[33m' + str(e) + '\033[0m\n')
+
+         else:
+
+            print('connection to IMAP server aborted.\n')
+            print('IMAPLIB ERROR: ' + str(e) + '\n')
+            
+         attempts =- 1
+         getimap(emailaddr, emailpass, imap_server, sslcon)
+         break
+         
       except server.error as e:
          pass
          logging.error('IMAPLIB ERROR: %s' % str(e))
@@ -669,412 +721,18 @@ def getimap(emailaddr, emailpass, imap_server, sslcon):
 
             print('connection failed to IMAP server.\n')
             print('IMAPLIB ERROR: ' + str(e) + '\n')
-
-         if qtyemail == '1' and attempts >= 1:
-
-            attempts =- 1
-            emailaddr = raw_input('please enter email again --> ')
-            emailpass = getpass.getpass('please enter password --> ')
-
-            matchaddy = re.search(r'^[_a-z0-9-]+(\.[_a-z0-9-]+)*@[a-z0-9-]+(\.[a-z0-9-]+)*(\.[a-z]{2,9})$', emailaddr)
-
-            while not matchaddy and attempts > 1:
-               print('\033[31m invalid email format \033[0m\n')
-               attempts = attempts - 1
-               
             
-            atdomain = re.search("@.*", emailaddr).group()
-            emaildomain = atdomain[1:]
-
-            imap_server = 'imap.' + emaildomain
-            imap_port = 993
+         attempts =- 1
+         atdomain = re.search("@.*", emailaddr).group()
+         emaildomain = atdomain[1:]
+   
+         getimap(emailaddr, emailpass, imap_server, sslcon)
+         break
             
-            getimap(emailaddr, emailpass, imap_server, sslcon)
-
    if attempts is 0:
       print('too many logon failures. unable to log onto IMAP server. quitting..')
       sys.exit(1)
 # END OF FUNCTION getimap(emailaddr, emailpass, imap_server, sslcon)
-
-# FUNCTION FOR IMAP CONNECTION USING MULTIPLE ADDRESSES
-def getimapmulti(emailaddr, emailpass, imap_server, sslcon):
-
-   imap_port = 993
-   server = imaplib.IMAP4_SSL(imap_server, imap_port)
-   
-   if 'no' in sslcon:
-      imap_port = 143
-
-      if 'gmail.com' in emailaddr:
-         imap_port = 587
-      
-      server = imaplib.IMAP4(imap_server, imap_port)
-
-   loginstatus, logindata = server.login(emailaddr, emailpass)
-
-   attempts = 0
-
-   while attempts <= 20:
-
-      try:
-         attempts += 1
-         select_info = server.select('INBOX')
-         status, unseen = server.search(None, 'UNSEEN')
-
-         typ, listdata = server.list()
-
-         countunseen = len(unseen)
-
-         if usecolor == 'color':
-
-            print("\n\033[35m%d UNREAD MESSAGES\033[0m" % len(unseen))
-            print()
-            print('Response code: \n\033[32m', typ)
-            print('\033[0m\nFOLDERS:\n\033[33m', listdata)
-            print('\033[34m\nlogin successful, fetching emails.. \033[0m\n')
-
-         else:
-
-            print("%d UNREAD MESSAGES" % len(unseen))
-            print()
-            print('Response code: \n', typ)
-            print('\nFOLDERS:\n', listdata)
-            print('\nlogin successful, fetching emails.. \n')
-
-         server.select()
-         result, msgs = server.search(None, 'ALL')
-
-         ids = msgs[0]
-         id_list = ids.split()
-
-         print(id_list)
-
-         if usecolor == 'color':
-
-            print('\033[37m------------------------------------------------------------\n\033[0m')
-
-         else:
-
-            print('------------------------------------------------------------')
-
-         homedir = os.path.expanduser("~")
-
-         rootdir = os.path.join(homedir, 'email-output')
-
-         if not os.path.exists(rootdir):
-            os.makedirs(rootdir, 0755)
-
-         printdate = str(datetime.date.today())
-
-         prev_file_name = emailaddr+"-headerlist-"+printdate+".txt"
-         prev_complete_name = os.path.join(rootdir, prev_file_name)
-
-         for email_uid in id_list:
-
-            result, rawdata = server.fetch(email_uid, '(RFC822)')
-
-            rawbody = rawdata[0][1]
-
-            m = email.message_from_string(rawbody)
-
-            msgfrom = m['From'].replace('/', '-')
-
-            body = decode_email(rawbody)
-
-            emaildomain = atdomain[1:]
-            j = len(emailaddr) - len(atdomain)
-            user_save = emailaddr[:j]
-
-            subdir =  user_save + "_" + emaildomain
-            save_path = os.path.join(rootdir, subdir)
-
-            if not os.path.exists(save_path):
-               os.makedirs(save_path)
-
-            mbody = email.message_from_string(rawbody)
-
-            if mbody.is_multipart():
-
-               ext = ".txt"
-
-               for mpart in mbody.get_payload():
-
-                  if 'text' in mpart.get_content_type():
-                     ext = ".txt"
-                     isattach = False
-
-                     if mpart.get_content_type() == 'text/html':
-                        ext = ".htm"
-                        isattach = False
-
-                  else:
-                     file_name = mpart.get_filename()
-                     isattach = True
-
-            else:
-               isattach = False
-               ext = ".txt"
-
-            if isattach is False:
-               file_name = user_save + "-" + email_uid + "-" + msgfrom[:25] + ext
-
-            if file_name is None:
-               file_name = user_save + "-" + msgfrom[:25] + "-" + email_uid + ext
-
-            complete_name = os.path.join(save_path, file_name)
-
-            dtnow = datetime.datetime.now()
-            dtyr = str(dtnow.year)
-            dtmo = str(dtnow.month)
-            dtday = str(dtnow.day)
-            dthr = str(dtnow.hour)
-            dtmin = str(dtnow.minute)
-
-            dtdate = str(dtyr + "-" + dtmo + "-" + dtday)
-            dttime = str(dthr + "." + dtmin)
-
-            if os.path.isfile(complete_name):
-
-               if usecolor == 'color':
-
-                  print('\n\033[33m' + complete_name + '\033[0m already exists, skipping.. \n')
-
-               else:
-
-                  print(complete_name + 'already exists, skipping.. \n')
-            
-            # PRINT MESSAGE DATA TO FILE
-            else:
-
-               if type(body) is str or type(body) is buffer and isattach is True:
-
-                  if usecolor == 'color':
-                     print('\n\033[34mdownloading file: \033[33m' + str(file_name) + '\033[0m\n')
-
-                  else:
-                     print('downloading file: ' + str(file_name))
-
-                  bodyfile = open(complete_name, 'wb+')
-                  # bodyfile.seek(0)
-                  bodyfile.write(body)
-                  bodyfile.close()
-
-               else:
-                  bodyfile = open(complete_name, 'wb+')
-                  bodyfile.write("SENDER: \n")
-                  bodyfile.write(msgfrom)
-                  bodyfile.write('\n')
-                  # bodyfile.write('Decoded:\n')
-                  bodyfile.write(str(body))
-                  bodyfile.write('\nRAW MESSAGE DATA:\n')
-                  bodyfile.write(rawbody)
-                  bodyfile.write('\n')
-                  bodyfile.write('file saved: ' + dtdate + ', ' + dttime)
-                  bodyfile.write('\n')
-                  bodyfile.close()
-
-               if usecolor == 'color':
-
-                  print('\033[36m\033[1mmessage data saved to new file: \033[35m' + complete_name + '\033[0m\n')
-
-               else:
-
-                  print('message data saved to new file: ' + complete_name)
-
-            if usecolor == 'color':
-
-               print('\033[37m------------------------------------------------------------\033[0m\n')
-
-               resp, data = server.fetch(email_uid, '(UID FLAGS BODY.PEEK[HEADER.FIELDS (FROM SUBJECT DATE)])')
-               print('\033[35m' + email_uid + '\033[0m\n')
-
-            else:
-
-               print('------------------------------------------------------------\n')
-
-               resp, data = server.fetch(email_uid, '(UID FLAGS BODY.PEEK[HEADER.FIELDS (FROM SUBJECT DATE)])')
-               print(email_uid)
-
-            print(data[0][1] + '\n')
-            msgpreview = data[0][1]
-
-            if not os.path.isfile(prev_complete_name):
-               prevfile = open(prev_complete_name, 'wb+')
-               prevfile.write(email_uid)
-               prevfile.write("\n")
-               prevfile.write(msgpreview)
-               prevfile.write("\n")
-               prevfile.close()
-
-         if usecolor == 'color':
-
-            print('\033[32minbox contents successfully saved to file. YAY! \033[0m\n')
-
-         else:
-
-            print('inbox contents successfully saved to file. YAY!')
-
-         if usecolor == 'color':
-            print('list of message previews saved as: \033[31m' + prev_complete_name + '\033[0m \n')
-         else:
-            print('list of message previews saved as: %s' % prev_complete_name)
-
-         logging.info('INFO: inbox contents saved to file with preview file %s' % prev_complete_name)
-         print('logging out..\n')
-         logging.info('INFO: logging off IMAP server.')
-         server.logout()
-         if usecolor == 'color':
-            print('logout successful for \033[38m%s.\033[0m\n' % emailaddr)
-            print('\033[34m------------------------------------------------------------\033[0m\n')
-         else:
-            print('logout successful for %s.\n' % emailaddr)
-            print('------------------------------------------------------------\n')
-         logging.info('INFO: logout successful for %s.' % emailaddr)
-         checkresp = 'OK'
-         attempts = 100
-         break
-         
-      except IOError as e:
-         pass
-         print("IO SOCKET ERROR: %s" % str(e))
-         logging.error('IO SOCKET ERROR: %s' % str(e))
-         traceback.print_exc()
-         checkresp = 'IOERROR'
-         attempts += 1
-         
-      except socket.error as e:
-         pass
-         print("SOCKET ERROR: %s" % str(e))
-         traceback.print_exc()
-         logging.error('SOCKET ERROR: %s' % str(e))
-         checkresp = 'SOCKETERROR'
-         attempts += 1
-      
-      except socket.timeout as e:
-         pass
-         print('Socket timeout: %s, retrying connection..' % str(e))
-         time.sleep(5.0)
-         checkresp = 'TIMEOUT'
-         attempts += 1
-      
-      except TypeError as e:
-         pass
-         print("TYPE ERROR: %s" % e)
-         logging.error('TYPE ERROR: %s' % e)
-         checkresp = 'TYPEERROR'
-         attempts += 1
-
-      except server.error as e:
-         pass
-         logging.error('SERVER ERROR: %s' % e)
-         checkresp = 'SERVERERROR'
-         attempts += 1
-         
-         if re.search(r'socket error: EOF$', str(e)):
-            checkresp = 'EOF'
-            if usecolor == 'color':
-               print(ac.OKBLUE + '\nsocket reporting EOF error. trying again after 10 seconds..\n' + ac.CLEAR)
-            else:
-               print('\nsocket reporting EOF error. trying again after 10 seconds.. \n')
-            time.sleep(10)
-         else:
-            if usecolor == 'color':
-               print('\033[35mfailed to connect to IMAP server.\033[0m\n')
-               print(ac.ORANGEBOLD + 'ERROR: ' + ac.OKAQUA + str(e) + ' \033[0m\n')
-            else:
-               print('failed connecting to IMAP server.\n')
-               print('ERROR: ' + str(e) + '\n')
-            
-         if qtyemail == '1' and 'OK' not in checkresp:
-            while True and attempts <= 20:
-               loginok = checklogin(emailaddr, emailpass, imap_server, sslcon)
-               if 'OK' in loginok:
-                  getimap(emailaddr, emailpass, imap_server, sslcon)
-                  break
-               else:
-                  emailaddr = raw_input('please enter email again --> ')
-                  emailpass = getpass.getpass('please enter password --> ')
-               attempts += 1
-               logging.info('INFO: trying again with user-supplied email %s' % emailaddr)
-               print('RETRYING with %s..' % emailaddr)
-            
-      except:
-         pass
-         
-         # start with a socket at 30-second timeout
-         sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-         sock.settimeout(30.0)
- 
-         # check and turn on TCP Keepalive
-         x = sock.getsockopt(socket.SOL_SOCKET, socket.SO_KEEPALIVE)
-         if( x == 0):
-            print('Socket KEEPALIVE off, turning on')
-            x = sock.setsockopt(socket.SOL_SOCKET, socket.SO_KEEPALIVE, 1)
-            logging.info('INFO: setsockopt=', x)
-         else:
-            print('Socket Keepalive already on')
-            logging.info('INFO: Socket KEEPALIVE already on')
-
-         try:
-            sock.connect(imap_server, imap_port)
-            attempts += 1
-
-         except socket.error:
-            pass
-            print('Socket connection failed')
-            traceback.print_exc()
-            time.sleep(5.0)
-            attempts += 1
-            continue
-         
-         except sock.error as e:
-            pass
-            if usecolor == 'color':
-               print(ac.BEIGEBOLD + 'ERROR: %s' + ac.CLEAR) % str(e)
-            else:
-               print('ERROR: %s') % str(e)
-            traceback.print_exc()
-            time.sleep(5.0)
-            attempts += 1
-            continue
-         
-         except:
-            pass
-            attempts += 1
-
-         print('Socket connection established!')
-
-         while 1:
-            try:
-               req = sock.recv(6)
-
-            except socket.timeout:
-               pass
-               print('Socket timeout, retrying connection..')
-               time.sleep( 5.0)
-               attempts += 1
-               continue
-               # traceback.print_exc()
-
-            except:
-               pass
-               traceback.print_exc()
-               print('Other Socket error. Trying to recreate socket..')
-               attempts += 1
-               # break from loop
-               break
-
-            print('RECEIVED SOCKET: ', req)
-            continue
-
-         try:
-            sock.close()
-         except:
-            pass
-         continue
-      
-      return checkresp
-# END OF FUNCTION getimapmulti(emailaddr, emailpass, imap_server, sslcon)
 
 # MULTIPLE EMAIL ADDRESSES
 if qtyemail == '2':
@@ -1211,7 +869,7 @@ if qtyemail == '2':
             lnpass = str(lnpass)
 
             if usecolor == 'color':
-               print('\033[36mUSING EMAIL ADDRESS: \033[34;1m' + lnemail + ac.CLEAR)
+               print('\033[32mUSING EMAIL ADDRESS: \033[34;1m' + lnemail + ac.CLEAR)
             
             else:
                print('USING EMAIL ADDRESS: ' + lnemail)
@@ -1231,7 +889,7 @@ if qtyemail == '2':
                
             else:
                logging.info('INFO: LOGIN to %s successful' % emailaddr)
-               getimapmulti(lnemail, lnpass, imap_server, sslcon)
+               getimap(lnemail, lnpass, imap_server, sslcon)
          
          # EMAIL AND PASSWORD IN SEPARATE FILES
          else:
@@ -1244,7 +902,7 @@ if qtyemail == '2':
          
             if usecolor == 'color':
                      print('\n\033[34m------------------------------------------------------------\033[0m\n')
-                     print('\n\033[36mUSING EMAIL ADDRESS: \033[34;1m' + line + ac.CLEAR)
+                     print('\n\033[32mUSING EMAIL ADDRESS: \033[34;1m' + line + ac.CLEAR)
                      print('\n\033[34m------------------------------------------------------------\033[0m\n')
             
             else:
@@ -1289,7 +947,7 @@ if qtyemail == '2':
                else:
                   print('\ngetting mailbox contents...\n')
                   logging.info('INFO: LOGIN to %s successful! getting mailbox contents...' % lnemail)
-                  getimapmulti(lnemail, lnpass.strip(), imap_server, sslcon)
+                  getimap(lnemail, lnpass.strip(), imap_server, sslcon)
                   tries = 100
                   break
 
@@ -1369,7 +1027,7 @@ if qtyemail == '2':
             efcount += 1
 
             logging.info('INFO: LOGIN to %s successful' % lnemail)
-            getimapmulti(lnemail, lnpass, imap_server, sslcon)
+            getimap(lnemail, lnpass, imap_server, sslcon)
 
       if efcount > eflen:
          print("all emails and passwords have been processed.")
@@ -1554,13 +1212,14 @@ else:
             loginok = str(loginok)
             if 'OK' in loginok:
                logging.info('INFO: LOGIN to %s successful' % emailaddr)
-               getimapmulti(emailaddr, emailpass, imap_server, sslcon)
+               getimap(emailaddr, emailpass, imap_server, sslcon)
                print("inbox contents have been saved to file for email: " + ac.OKAQUA + emailaddr + ac.CLEAR)
                count = 100
-            continue
+               tries = -1
+               break
 
          if 'OK' not in loginok and count <= listlen:
-            #print('tried: %s') % str(lnpass)
+            tries = -1
             if usecolor == 'color':
                print('\n\033[31mLOGIN FAILED. \033[34;1mtrying next entry...\033[0m\n')
                print('\033[33mtries: \033[35m' + str(count) + '\033[33m out of \033[35m %s \033[0m' % str(listlen))
@@ -1571,9 +1230,10 @@ else:
             continue
 
          else:
-            logging.info('INFO: LOGIN to %s successful!' % emailaddr)
-            getimapmulti(emailaddr, emailpass.strip(), imap_server, sslcon)
             count = 100
+            tries = -1
+            logging.info('INFO: LOGIN to %s successful!' % emailaddr)
+            getimap(emailaddr, emailpass.strip(), imap_server, sslcon)
             homedir = os.path.expanduser("~")
             rootdir = os.path.join(homedir, 'email-output')
             print("inbox contents saved to directory: %s" % rootdir)
@@ -1582,6 +1242,7 @@ else:
             break
 
       if count >= listlen and count < 100:
+         tries = -1
          if usecolor == 'color':
             print('\n\033[35mexhausted all entries in password list for:\033[33m %s.\n\033[0m' % emailaddr)
          else:
