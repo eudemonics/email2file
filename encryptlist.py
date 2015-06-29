@@ -57,6 +57,8 @@ print(ac.BLKBGBLUE + '''
 
 def encryption(encpass, fn, encfile):
 
+   current = os.getcwd()
+
    while not os.path.exists(fn):
       fn = raw_input("invalid path. please check file name and enter again --> ")
 
@@ -78,11 +80,10 @@ def encryption(encpass, fn, encfile):
       print(ac.GREENBOLD + '\nYour encryption key has been saved to the current directory (' + ac.BLKBGGREYBOLD + current + ac.CLEAR + ac.GREENBOLD + ') as ' + ac.ORANGE + 'secret.key' + ac.GREENBOLD + '.\nYou should copy this file to another location to ensure you have a backup of it.\n' + ac.PINKBOLD + 'You will need the key to decrypt the file later.\n' + ac.CLEAR)
    
    cryptfile.close()
-   
+   os.system('chmod 0644 secret.key')
    print('\nyour raw encryption key: ')
    print(cryptkey)
    print('your base64 encoded key: %s' % bcryptkey)
-   current = os.getcwd()
    
    pad = lambda a: a + (BLOCK_SIZE - len(a) % BLOCK_SIZE) * PADDING
    AES_Enc = lambda c, a: base64.b64encode(c.encrypt(pad(a)))
