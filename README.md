@@ -4,7 +4,7 @@
 
 LICENSE AGREEMENT & DISCLAIMER
 
-copyright, copyleft (C) 2014-2015  vvn [ vvn @ notworth.it ]
+copyright, copyleft (C) 2014-2015  vvn [ lost @ nobody . ninja ]
 
     This program is FREE software: you can redistribute it and/or modify
     it as you wish. Copying and distribution of this file, with or without modification,
