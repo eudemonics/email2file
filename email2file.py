@@ -1,8 +1,8 @@
 #!/usr/bin/env python
 #
-##### EMAIL2FILE v1.787 BETA
+##### EMAIL2FILE v1.8 BETA
 ##### AUTHOR: vvn < lost @ nobody . ninja >
-##### VERSION RELEASE: July 8, 2015
+##### VERSION RELEASE: September 16, 2015
 #####
 ##### SAVE EMAIL LISTS AS PLAIN TEXT format in script directory with one address per line.
 ##### you can include the password, if known, as a base64-encoded string 
@@ -92,6 +92,7 @@ from __future__ import print_function
 import email, base64, getpass, imaplib, threading
 from email.header import decode_header
 import re, sys, os, os.path, socket, time, traceback, logging
+from subprocess import Popen
 from datetime import datetime, date
 from threading import Thread, Timer
 from Crypto.Cipher import AES
@@ -101,13 +102,13 @@ from ansilist import ac
 
 colorintro = '''
 \033[34m=====================================\033[33m
----------\033[36m EMAIL2FILE v1.787 \033[33m---------
+----------\033[36m EMAIL2FILE v1.8 \033[33m----------
 -------------------------------------
 -----------\033[35m author : vvn \033[33m------------
 ---------\033[32m lost@nobody.ninja \033[33m---------
 \033[34m=====================================\033[33m
 ----\033[37m support my work: buy my EP! \033[33m----
----\033[37m http://dreamcorp.bandcamp.com \033[33m---
+--------\033[37m http://dreamcorp.us \033[33m--------
 ---\033[37m facebook.com/dreamcorporation \033[33m---
 ------\033[32m thanks for the support! \033[33m------
 \033[34m=====================================\n\033[0m
@@ -115,13 +116,13 @@ colorintro = '''
 
 cleanintro = '''
 =====================================
---------- EMAIL2FILE v1.787 ---------
+---------- EMAIL2FILE v1.8 ----------
 -------------------------------------
 ----------- author : vvn ------------
 --------- lost@nobody.ninja ---------
 =====================================
 ---- support my work: buy my EP! ----
---- http://dreamcorp.bandcamp.com ---
+-------- http://dreamcorp.us --------
 --- facebook.com/dreamcorporation ---
 ------ thanks for the support! ------
 =====================================
@@ -134,7 +135,7 @@ if not os.path.exists('logs'):
 
 ustimefmt = lambda a: date.strftime(a,"%m/%d/%Y %I:%M%p")
 today = datetime.now()
-today = date.strftime(today,"%m-%d-%Y[%H:%M]")
+today = date.strftime(today,"%m-%d-%Y")
 logfile = 'email2file-' + today + '.log'
 logfile = os.path.join('logs', logfile)
 
@@ -142,7 +143,7 @@ logging.basicConfig(level=logging.DEBUG,
                     format='%(asctime)s %(levelname)-8s %(message)s',
                     datefmt='%a, %d %b %Y %I:%M%p',
                     filename=logfile,
-                    filemode='w')
+                    filemode='ab+')
 
 if os.name == 'nt' or sys.platform == 'win32':
    os.system('icacls encryptlist.py /grant %USERNAME%:F')
@@ -185,11 +186,13 @@ qtyemail = raw_input('enter 1 for single email or 2 for multiple emails --> ')
 while not re.search(r'^[12]$', qtyemail):
    qtyemail = raw_input('invalid entry. enter 1 for a single email address, or enter 2 to specify a list of multiple email addresses in text format --> ')
 
+# CHECK IF WORD LIST USED FOR PASSWORD
 usewordlist = raw_input('do you want to use a word list rather than supply a password? enter Y/N --> ')
 
 while not re.search(r'^[nyNY]$', usewordlist):
    usewordlist = raw_input('invalid entry. enter Y to use word list or N to supply password --> ')
 
+# CHECK IF SSL USED TO CONNECT TO IMAP SERVER
 usesslcheck = raw_input('use SSL? Y/N --> ')
 
 while not re.search(r'^[nyNY]$', usesslcheck):
@@ -218,9 +221,9 @@ def resolveimap(imap_server):
       logging.warning('unable to resolve %s' % imap_server)
       logging.warning('caught exception: %s' % str(e))
       if usecolor == 'color':
-         print(ac.OKAQUA + 'could not resolve ' + ac.OKPINK + imap_server + ac.CLEAR)
+         print(ac.YELLOW + 'ERROR: ' + ac.OKAQUA + 'could not resolve ' + ac.OKPINK + imap_server + ac.CLEAR)
       else:
-         print('could not resolve %s' % imap_server)
+         print('ERROR: could not resolve %s' % imap_server)
       
       print('\nerror: %s \n' % str(e))
       imap_server = raw_input('please enter a valid IMAP server --> ')
@@ -233,12 +236,18 @@ def resolveimap(imap_server):
    
    finally:
       logging.info('raw response for getaddrinfo: %s' % str(resolved_ips))
-      if len(str(resolved_ips[3])) > 1:
-         server_ip = resolved_ips[3][0]
+      
+      if len(resolved_ips) > 1:
+         if len(str(resolved_ips[3])) > 1:
+            server_ip = resolved_ips[3][0]
+         else:
+            server_ip = resolved_ips[4][0]
+         print('\nRESOLVED TO: %s \n' % str(server_ip))
+      
       else:
-         server_ip = resolved_ips[4][0]
-      print('resolved to: %s \n' % str(server_ip))
-   
+         print('\ERROR: no response from DNS server.\n')
+         logging.warning('no response from DNS servers.')
+         
    return imap_server
 
 # FUNCTION TO CHECK LOGIN CREDENTIALS
@@ -343,7 +352,7 @@ def checklogin(emailaddr, emailpass, imap_server, sslcon):
       if 'BAD' in str(e):
          checkresp = 'BAD'
       else:
-         checkresp = 'ERROR'
+         checkresp = checkresp + 'ERROR'
 
    except socket.timeout as e:
       pass
@@ -647,7 +656,7 @@ def getimap(emailaddr, emailpass, imap_server, sslcon):
                dtnow = datetime.now()
                dtdatetime = str(date.strftime(dtnow,"%m-%d-%Y %I:%M%p"))
                dtdate = str(date.strftime(dtnow,"%m-%d-%Y"))
-               dttime = str(dtnow.hour) + ":" + str   (dtnow.minute)
+               dttime = str(dtnow.hour) + ":" + str(dtnow.minute)
 
                if os.path.isfile(complete_name):
 
@@ -784,7 +793,10 @@ def getimap(emailaddr, emailpass, imap_server, sslcon):
       sys.exit(1)
 # END OF FUNCTION getimap(emailaddr, emailpass, imap_server, sslcon)
 
-# MULTIPLE EMAIL ADDRESSES
+############################
+# MULTIPLE EMAIL ADDRESSES #
+############################
+
 if qtyemail == '2':
    emaillistfile = raw_input('please copy the email list file to the script directory, then enter filename --> ')
    while not os.path.isfile(emaillistfile):
@@ -796,7 +808,10 @@ if qtyemail == '2':
    emailfile = ef.readlines()
    eflen = len(emailfile)
 
-   # USING PASSWORD LIST
+   #######################
+   # USING PASSWORD LIST #
+   #######################
+   
    if usewordlist.lower() == 'y':
       pwlistfile = raw_input('please make sure password list is in the script directory, then enter the filename --> ')
       while not os.path.isfile(pwlistfile):
@@ -807,7 +822,10 @@ if qtyemail == '2':
       while not re.search(r'^[nNyY]$', encryptsel):
          encryptsel = raw_input('invalid selection. enter Y if word list was encrypted using encryptlist.py or N if not encrypted --> ')
       
-      # IF PASSWORD LIST IS ENCRYPTED  
+      ###########################
+      # ENCRYPTED PASSWORD LIST #
+      ###########################
+      
       if encryptsel.lower() == 'y':
       
          if os.path.isfile('secret.key'):
@@ -840,7 +858,10 @@ if qtyemail == '2':
                print(a)
             print('')
       
-      # IF PASSWORD LIST NOT ENCRYPTED
+      #############################
+      # UNENCRYPTED PASSWORD LIST #
+      #############################
+      
       else:
       
          b64sel = raw_input('is the word list base64-encoded using encodelist.py? Y/N --> ')
@@ -866,7 +887,8 @@ if qtyemail == '2':
                print('*** to encrypt your list in the future, run \'python encryptlist.py\'. to  base64-encode your list in the future, run \'python encodelist.py\' ***')
          else:
             logging.info('using base64 decoding for password list.')
-               
+            
+      # TRYING PASSWORD LIST ENTRIES ON EMAIL LOGIN               
       print("\nusing word list: ")
       if usecolor == 'color':
          print(ac.YELLOWBOLD + pwlistfile + ac.CLEAR)
@@ -1055,7 +1077,9 @@ if qtyemail == '2':
             logging.info('successfully processed all email addresses and passwords.')
             break
             
-   # NOT USING PASSWORD LIST
+   ###########################
+   # NOT USING PASSWORD LIST #
+   ###########################
    else:
    
       efcount = 1
@@ -1124,7 +1148,10 @@ if qtyemail == '2':
          logging.info('processing complete for all emails and passwords. exiting program..')
          sys.exit(0)
 
-# SINGLE EMAIL ADDRESS
+########################
+# SINGLE EMAIL ADDRESS #
+########################
+
 else:
 
    emailaddr = raw_input('please enter email address --> ')
@@ -1132,12 +1159,13 @@ else:
    #VALIDATE EMAIL USING REGEX
    match = re.search(r'^[_a-z0-9-]+(\.[_a-z0-9-]+)*@[a-z0-9-]+(\.[a-z0-9-]+)*(\.[a-z]{2,9})$', emailaddr)
 
+   # VALID EMAIL
    if match:
       if usecolor == 'color':
          print('\033[32m\nemail is valid\033[0m\n')
 
       else:
-         print('email is valid\n')
+         print('\nemail is valid\n')
       
       atdomain = re.search("@.*", emailaddr).group()
       emaildomain = atdomain[1:]
@@ -1145,55 +1173,64 @@ else:
       imap_server = 'imap.' + emaildomain
       imap_port = 993
       
+      print('\nchecking for IMAP server at %s...\n' % imap_server)
+      
+      # TRY TO RESOLVE IMAP SERVER
       resolved = resolveimap(imap_server)
             
       if len(resolved) < 1:
          resolved = resolveimap(imap_server)
       
       imap_server = resolved
-      
+   
+   # INVALID EMAIL   
    else:
-      tries = 5
+      tries = 0
 
-      while tries > 0:
+      while tries < 5:
 
          if usecolor == 'color':
             print('\033[31minvalid email format\033[0m\n')
-            print('bad attempts: \033[33m' + str(6 - tries) + '\033[0m\n')
-            print('\033[36myou have ' + str(tries) + ' attempts remaining.\033[0m\n')
+            print('bad attempts: \033[33m' + str(tries) + '\033[0m\n')
+            print('\033[36myou have ' + str(5 - tries) + ' attempts remaining.\033[0m\n')
 
          else:
             print('invalid email format')
-            print('bad attempts: ' + str(6 - tries))
-            print('you have ' + str(tries) + 'attempts remaining.')
+            print('bad attempts: ' + str(tries))
+            print('you have ' + str(5 - tries) + 'attempts remaining.')
          
-         logging.warning('submitted invalid email format %s times' % str(6 - tries))
+         logging.warning('submitted invalid email format %s times' % str(tries))
 
          emailaddr = raw_input('please enter email again --> ')
 
+         # VALID EMAIL
          if match:
-            tries = -1
+            tries = 100
             break
 
+         # 
          else:
-            tries = tries - 1
+            tries += 1
 
-      if tries == 0:
+      # TOO MANY MALFORMED INPUT ATTEMPTS
+      if tries == 5:
          if usecolor == 'color':
             print('\033[31m too many bad attempts using invalid format! \033[0m\n')
          else:
             print('too many bad attempts using invalid format!')
 
-         logging.error('too many bad attempts using unproperly formatted email string %s. aborting program.') % str(emailaddr.strip())
+         logging.error('too many bad attempts using improperly formatted email string %s. aborting program.') % str(emailaddr.strip())
          print('aborting program..')
          sys.exit(1)
       
-      elif tries == -1:
+      # GOOD EMAIL FORMAT
+      elif tries == 100:
          if usecolor == 'color':
             print('\n\033[32m email is valid \033[0m')
          else:
             print('email is valid')
-
+      
+      # OTHER ERROR
       else:
          if usecolor == 'color':
             print('\033[31mERROR: unhandled exception. aborting..\033[0m\n')
@@ -1357,10 +1394,59 @@ else:
          print('exiting program..\n')
          sys.exit(1)
 
+   # PROMPT FOR PASSWORD
    else:
 
       emailpass = getpass.getpass('please enter password --> ')
-      getimap(emailaddr, emailpass, imap_server, sslcon)
+      prompts = 10
+      
+      while prompts > 0:
+               
+         loginok = checklogin(emailaddr, emailpass, imap_server, sslcon)
+         loginok = str(loginok)
+         
+         # OTHER ERROR
+         if 'OK' not in loginok:
+            emailpass = emailpass.strip()
+            print("\nlogin to %s failed with the supplied credentials. \n" % imap_server)
+            emailpass = getpass.getpass('please enter password again --> ')
+            prompts = prompts - 1
+            loginok = str(loginok)
+            if 'OK' in loginok:
+               logging.info('LOGIN to %s successful' % emailaddr)
+               prompts = -1
+               break
+            else:
+               continue
+
+         else:
+            prompts = -1
+            logging.info('LOGIN to %s successful!' % emailaddr)
+            break
+      
+      if prompts == 0:
+         print('\nTOO MANY FAILED LOGIN ATTEMPTS WITH WRONG PASSWORD!\n')
+         logging.error('too many failed logins with bad password for email %s.' % emailaddr)
+         
+      elif prompts == -1:
+      
+         getimap(emailaddr, emailpass, imap_server, sslcon)
+         #homedir = os.path.expanduser("~")
+         #rootdir = os.path.join(homedir, 'email-output')
+         rootdir = 'email-output'
+         if usecolor == 'color':
+            print("inbox contents have been saved to file for email: " + ac.OKAQUA + emailaddr + ac.CLEAR)
+         else:
+            print("inbox contents have been saved to file for email: %s" % emailaddr)
+         logging.info('saved inbox contents to file for %s' % emailaddr)
+         print("\nmailbox items can be found in directory: %s \n" % rootdir)
+         
+      else:
+         print("\nLOGIN FAILED: an unknown error has occurred.\n")
+         logging.error('unknown error occurred while attempting login for %s.' % emailaddr)
+
+      print("\nexiting program..\n")
+      sys.exit(0)
 
 logging.info("exited application.")
 logging.shutdown()
