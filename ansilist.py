@@ -5,9 +5,10 @@
 # https://github.com/eudemonics/email2file.git
 
 class ac:
+     
    CLEAR = '\033[0m'
    BOLD = '\033[1m'
-   GREY = '\033[2m'
+   DARK = '\033[2m'
    UNDERLINE = '\033[4m'
    BLINK = '\033[5m'
    INVERSE = '\033[7m'
@@ -19,6 +20,26 @@ class ac:
    PINK = '\033[35m'
    AQUA = '\033[36m'
    BEIGE = '\033[37m'
+   
+   normal = 'm'
+   bold = ';1m'
+   endbold = ';21m'
+   underline = ';4m'
+   endunderline = ';24m'
+   blink = ';5m'
+   endblink = ';25m'
+   inverse = ';7m'
+   endinverse = ';27m'
+         
+   BLACKBG = '\033[40m'
+   REDBG = '\033[41m'
+   GREENBG = '\033[42m'
+   YELLOWBG = '\033[43m'
+   BLUEBG = '\033[44m'
+   PINKBG = '\033[45m'
+   AQUABG = '\033[46m'
+   BEIGEBG = '\033[47m'
+   
    GREYBOLD = '\033[30;1m'
    ORANGEBOLD = '\033[31;1m'
    GREENBOLD = '\033[32;1m'
@@ -27,6 +48,7 @@ class ac:
    PINKBOLD = '\033[35;1m'
    AQUABOLD = '\033[36;1m'
    BEIGEBOLD = '\033[37;1m'
+   TEALBOLD = '\033[2;1m'
    BLACKBG = '\033[40m'
    REDBG = '\033[41m'
    GREENBG = '\033[42m'
@@ -170,7 +192,23 @@ class ac:
    BGEBGPINKBOLD = BEIGEBG + '\033[35;1m'
    BGEBGAQUABOLD = BEIGEBG + '\033[36;1m'
    BGEBGBEIGEBOLD = BEIGEBG + '\033[37;1m'
-   
-   
-   
-   
+   AQUABOLDUL = '\033[99;4m' + '\033[0;24m'
+
+   class base:
+      BLACK = '\033[30'
+      ORANGE = '\033[31'
+      GREEN = '\033[32'
+      YELLOW = '\033[33'
+      BLUE = '\033[34'
+      PINK = '\033[35'
+      AQUA = '\033[36'
+      BEIGE = '\033[37'
+      SILVER = '\033[90'
+      OKORANGE = '\033[91'
+      OKGREEN = '\033[92'
+      OKYELLOW = '\033[93'
+      OKBLUE = '\033[94'
+      OKPINK = '\033[95'
+      OKAQUA = '\033[96'
+      OKBEIGE = '\033[97'
+      BOLDTXT = '\033[99'
