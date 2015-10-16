@@ -32,10 +32,10 @@ print(ac.BLKBGBLUE + '''
 ###############################################
 ############# #  # #  # #  # #  # #############
 #####                                     #####
-#####    ''' + ac.REDBGBEIGEBOLD + 'ENCRYPTLIST.PY FOR EMAIL2FILE' + ac.CLEAR + ac.BLKBGBLUE + '    #####' +
+#####    ''' + ac.REDBGWHITEBOLD + 'ENCRYPTLIST.PY FOR EMAIL2FILE' + ac.CLEAR + ac.BLKBGBLUE + '    #####' +
 '''
 #####                                     #####
-#######           ''' + ac.BLKBGPINKBOLD + 'VERSION 0.1' + ac.CLEAR + ac.BLKBGBLUE + '           #######' + 
+#######           ''' + ac.BLKBGPINKBOLD + 'VERSION 0.2' + ac.CLEAR + ac.BLKBGBLUE + '           #######' + 
 '''
 #########           ''' + ac.BLKBGAQUABOLD + 'by: vvn' + ac.CLEAR + ac.BLKBGBLUE + '           #########' +
 '''
@@ -46,7 +46,7 @@ print(ac.BLKBGBLUE + '''
 ###############################################
 ############# #  # #  # #  # #  # #############
 #####                                     #####
-#####            ''' + ac.BLKBGGREYBOLD + 'RELEASE DATE:' + ac.CLEAR + ac.BLKBGBLUE + '            #####' +
+#####            ''' + ac.CLEAR + ac.BLKBGGREYBOLD + 'RELEASE DATE:' + ac.CLEAR + ac.BLKBGBLUE + '            #####' +
 '''
 #####           ''' + ac.BLKBGYELLOWBOLD + 'APRIL 23, 2015' + ac.CLEAR + ac.BLKBGBLUE + '            #####' +
 '''
@@ -199,8 +199,8 @@ def gen_list():
          ef = open(encfile, "r+")
          for line in ef.readlines():
             decoded = AES_Dec(cipher, line)
-            print(ac.BEIGE + "encrypted: " + ac.ORANGE + line + ac.CLEAR)
-            print(ac.BEIGE + "decrypted: " + ac.GREEN + decoded + ac.CLEAR)
+            print(ac.WHITE + "encrypted: " + ac.ORANGE + line + ac.CLEAR)
+            print(ac.WHITE + "decrypted: " + ac.GREEN + decoded + ac.CLEAR)
             print(ac.BLUE + "------------------------------------------------------------" + ac.CLEAR)
          ef.close()
          exitmenu()
