@@ -12,6 +12,7 @@ class ac:
    UNDERLINE = '\033[4m'
    BLINK = '\033[5m'
    INVERSE = '\033[7m'
+   
    BLACK = '\033[30m'
    ORANGE = '\033[31m'
    GREEN = '\033[32m'
@@ -19,7 +20,7 @@ class ac:
    BLUE = '\033[34m'
    PINK = '\033[35m'
    AQUA = '\033[36m'
-   BEIGE = '\033[37m'
+   WHITE = '\033[37m'
    
    normal = 'm'
    bold = ';1m'
@@ -38,7 +39,7 @@ class ac:
    BLUEBG = '\033[44m'
    PINKBG = '\033[45m'
    AQUABG = '\033[46m'
-   BEIGEBG = '\033[47m'
+   WHITEBG = '\033[47m'
    
    GREYBOLD = '\033[30;1m'
    ORANGEBOLD = '\033[31;1m'
@@ -47,7 +48,7 @@ class ac:
    BLUEBOLD = '\033[34;1m'
    PINKBOLD = '\033[35;1m'
    AQUABOLD = '\033[36;1m'
-   BEIGEBOLD = '\033[37;1m'
+   WHITEBOLD = '\033[37;1m'
    TEALBOLD = '\033[2;1m'
    BLACKBG = '\033[40m'
    REDBG = '\033[41m'
@@ -56,7 +57,7 @@ class ac:
    BLUEBG = '\033[44m'
    PINKBG = '\033[45m'
    AQUABG = '\033[46m'
-   BEIGEBG = '\033[47m'
+   WHITEBG = '\033[47m'
    OKGREY = '\033[90m'
    OKORANGE = '\033[91m'
    OKGREEN = '\033[92m'
@@ -64,14 +65,14 @@ class ac:
    OKBLUE = '\033[94m'
    OKPINK = '\033[95m'
    OKAQUA = '\033[96m'
-   OKBEIGE = '\033[97m'
+   OKWHITE = '\033[97m'
    BLKBGORANGE = BLACKBG + '\033[31m'
    BLKBGGREEN = BLACKBG + '\033[32m'
    BLKBGYELLOW = BLACKBG + '\033[33m'
    BLKBGBLUE = BLACKBG + '\033[34m'
    BLKBGPINK = BLACKBG + '\033[35m'
    BLKBGAQUA = BLACKBG + '\033[36m'
-   BLKBGBEIGE = BLACKBG + '\033[37m'
+   BLKBGWHITE = BLACKBG + '\033[37m'
    BLKBGGREYBOLD = BLACKBG + '\033[30;1m'
    BLKBGORANGEBOLD = BLACKBG + '\033[31;1m'
    BLKBGGREENBOLD = BLACKBG + '\033[32;1m'
@@ -79,7 +80,7 @@ class ac:
    BLKBGBLUEBOLD = BLACKBG + '\033[34;1m'
    BLKBGPINKBOLD = BLACKBG + '\033[35;1m'
    BLKBGAQUABOLD = BLACKBG + '\033[36;1m'
-   BLKBGBEIGEBOLD = BLACKBG + '\033[37;1m'
+   BLKBGWHITEBOLD = BLACKBG + '\033[37;1m'
    REDBGBLACK = REDBG + '\033[30m'
    REDBGORANGE = REDBG + '\033[31m'
    REDBGGREEN = REDBG + '\033[32m'
@@ -87,7 +88,7 @@ class ac:
    REDBGBLUE = REDBG + '\033[34m'
    REDBGPINK = REDBG + '\033[35m'
    REDBGAQUA = REDBG + '\033[36m'
-   REDBGBEIGE = REDBG + '\033[37m'
+   REDBGWHITE = REDBG + '\033[37m'
    REDBGGREYBOLD = REDBG + '\033[30;1m'
    REDBGORANGEBOLD = REDBG + '\033[31;1m'
    REDBGGREENBOLD = REDBG + '\033[32;1m'
@@ -95,7 +96,7 @@ class ac:
    REDBGBLUEBOLD = REDBG + '\033[34;1m'
    REDBGPINKBOLD = REDBG + '\033[35;1m'
    REDBGAQUABOLD = REDBG + '\033[36;1m'
-   REDBGBEIGEBOLD = REDBG + '\033[37;1m'
+   REDBGWHITEBOLD = REDBG + '\033[37;1m'
    GRNBGBLACK = GREENBG + '\033[30m'
    GRNBGORANGE = GREENBG + '\033[31m'
    GRNBGGREEN = GREENBG + '\033[32m'
@@ -103,7 +104,7 @@ class ac:
    GRNBGBLUE = GREENBG + '\033[34m'
    GRNBGPINK = GREENBG + '\033[35m'
    GRNBGAQUA = GREENBG + '\033[36m'
-   GRNBGBEIGE = GREENBG + '\033[37m'
+   GRNBGWHITE = GREENBG + '\033[37m'
    GRNBGGREYBOLD = GREENBG + '\033[30;1m'
    GRNBGORANGEBOLD = GREENBG + '\033[31;1m'
    GRNBGGREENBOLD = GREENBG + '\033[32;1m'
@@ -111,7 +112,7 @@ class ac:
    GRNBGBLUEBOLD = GREENBG + '\033[34;1m'
    GRNBGPINKBOLD = GREENBG + '\033[35;1m'
    GRNBGAQUABOLD = GREENBG + '\033[36;1m'
-   GRNBGBEIGEBOLD = GREENBG + '\033[37;1m'
+   GRNBGWHITEBOLD = GREENBG + '\033[37;1m'
    YLWBGBLACK = YELLOWBG + '\033[30m'
    YLWBGORANGE = YELLOWBG + '\033[31m'
    YLWBGGREEN = YELLOWBG + '\033[32m'
@@ -119,7 +120,7 @@ class ac:
    YLWBGBLUE = YELLOWBG + '\033[34m'
    YLWBGPINK = YELLOWBG + '\033[35m'
    YLWBGAQUA = YELLOWBG + '\033[36m'
-   YLWBGBEIGE = YELLOWBG + '\033[37m'
+   YLWBGWHITE = YELLOWBG + '\033[37m'
    YLWBGGREYBOLD = YELLOWBG + '\033[30;1m'
    YLWBGORANGEBOLD = YELLOWBG + '\033[31;1m'
    YLWBGGREENBOLD = YELLOWBG + '\033[32;1m'
@@ -127,7 +128,7 @@ class ac:
    YLWBGBLUEBOLD = YELLOWBG + '\033[34;1m'
    YLWBGPINKBOLD = YELLOWBG + '\033[35;1m'
    YLWBGAQUABOLD = YELLOWBG + '\033[36;1m'
-   YLWBGBEIGEBOLD = YELLOWBG + '\033[37;1m'
+   YLWBGWHITEBOLD = YELLOWBG + '\033[37;1m'
    BLUBGBLACK = BLUEBG + '\033[30m'
    BLUBGORANGE = BLUEBG + '\033[31m'
    BLUBGGREEN = BLUEBG + '\033[32m'
@@ -135,7 +136,7 @@ class ac:
    BLUBGBLUE = BLUEBG + '\033[34m'
    BLUBGPINK = BLUEBG + '\033[35m'
    BLUBGAQUA = BLUEBG + '\033[36m'
-   BLUBGBEIGE = BLUEBG + '\033[37m'
+   BLUBGWHITE = BLUEBG + '\033[37m'
    BLUBGGREYBOLD = BLUEBG + '\033[30;1m'
    BLUBGORANGEBOLD = BLUEBG + '\033[31;1m'
    BLUBGGREENBOLD = BLUEBG + '\033[32;1m'
@@ -143,7 +144,7 @@ class ac:
    BLUBGBLUEBOLD = BLUEBG + '\033[34;1m'
    BLUBGPINKBOLD = BLUEBG + '\033[35;1m'
    BLUBGAQUABOLD = BLUEBG + '\033[36;1m'
-   BLUBGBEIGEBOLD = BLUEBG + '\033[37;1m'
+   BLUBGWHITEBOLD = BLUEBG + '\033[37;1m'
    PNKBGBLACK = PINKBG + '\033[30m'
    PNKBGORANGE = PINKBG + '\033[31m'
    PNKBGGREEN = PINKBG + '\033[32m'
@@ -151,7 +152,7 @@ class ac:
    PNKBGBLUE = PINKBG + '\033[34m'
    PNKBGPINK = PINKBG + '\033[35m'
    PNKBGAQUA = PINKBG + '\033[36m'
-   PNKBGBEIGE = PINKBG + '\033[37m'
+   PNKBGWHITE = PINKBG + '\033[37m'
    PNKBGGREYBOLD = PINKBG + '\033[30;1m'
    PNKBGORANGEBOLD = PINKBG + '\033[31;1m'
    PNKBGGREENBOLD = PINKBG + '\033[32;1m'
@@ -159,7 +160,7 @@ class ac:
    PNKBGBLUEBOLD = PINKBG + '\033[34;1m'
    PNKBGPINKBOLD = PINKBG + '\033[35;1m'
    PNKBGAQUABOLD = PINKBG + '\033[36;1m'
-   PNKBGBEIGEBOLD = PINKBG + '\033[37;1m'
+   PNKBGWHITEBOLD = PINKBG + '\033[37;1m'
    AQUBGBLACK = AQUABG + '\033[30m'
    AQUBGORANGE = AQUABG + '\033[31m'
    AQUBGGREEN = AQUABG + '\033[32m'
@@ -167,7 +168,7 @@ class ac:
    AQUBGBLUE = AQUABG + '\033[34m'
    AQUBGPINK = AQUABG + '\033[35m'
    AQUBGAQUA = AQUABG + '\033[36m'
-   AQUBGBEIGE = AQUABG + '\033[37m'
+   AQUBGWHITE = AQUABG + '\033[37m'
    AQUBGGREYBOLD = AQUABG + '\033[30;1m'
    AQUBGORANGEBOLD = AQUABG + '\033[31;1m'
    AQUBGGREENBOLD = AQUABG + '\033[32;1m'
@@ -175,40 +176,85 @@ class ac:
    AQUBGBLUEBOLD = AQUABG + '\033[34;1m'
    AQUBGPINKBOLD = AQUABG + '\033[35;1m'
    AQUBGAQUABOLD = AQUABG + '\033[36;1m'
-   AQUBGBEIGEBOLD = AQUABG + '\033[37;1m'
-   BGEBGBLACK = BEIGEBG + '\033[30m'
-   BGEBGORANGE = BEIGEBG + '\033[31m'
-   BGEBGGREEN = BEIGEBG + '\033[32m'
-   BGEBGYELLOW = BEIGEBG + '\033[33m'
-   BGEBGBLUE = BEIGEBG + '\033[34m'
-   BGEBGPINK = BEIGEBG + '\033[35m'
-   BGEBGAQUA = BEIGEBG + '\033[36m'
-   BGEBGBEIGE = BEIGEBG + '\033[37m'
-   BGEBGGREYBOLD = BEIGEBG + '\033[30;1m'
-   BGEBGORANGEBOLD = BEIGEBG + '\033[31;1m'
-   BGEBGGREENBOLD = BEIGEBG + '\033[32;1m'
-   BGEBGYELLOWBOLD = BEIGEBG + '\033[33;1m'
-   BGEBGBLUEBOLD = BEIGEBG + '\033[34;1m'
-   BGEBGPINKBOLD = BEIGEBG + '\033[35;1m'
-   BGEBGAQUABOLD = BEIGEBG + '\033[36;1m'
-   BGEBGBEIGEBOLD = BEIGEBG + '\033[37;1m'
-   AQUABOLDUL = '\033[99;4m' + '\033[0;24m'
+   AQUBGWHITEBOLD = AQUABG + '\033[37;1m'
+   WHITEBGBLACK = WHITEBG + '\033[30m'
+   WHITEBGORANGE = WHITEBG + '\033[31m'
+   WHITEBGGREEN = WHITEBG + '\033[32m'
+   WHITEBGYELLOW = WHITEBG + '\033[33m'
+   WHITEBGBLUE = WHITEBG + '\033[34m'
+   WHITEBGPINK = WHITEBG + '\033[35m'
+   WHITEBGAQUA = WHITEBG + '\033[36m'
+   WHITEBGWHITE = WHITEBG + '\033[37m'
+   WHITEBGGREYBOLD = WHITEBG + '\033[30;1m'
+   WHITEBGORANGEBOLD = WHITEBG + '\033[31;1m'
+   WHITEBGGREENBOLD = WHITEBG + '\033[32;1m'
+   WHITEBGYELLOWBOLD = WHITEBG + '\033[33;1m'
+   WHITEBGBLUEBOLD = WHITEBG + '\033[34;1m'
+   WHITEBGPINKBOLD = WHITEBG + '\033[35;1m'
+   WHITEBGAQUABOLD = WHITEBG + '\033[36;1m'
+   WHITEBGWHITEBOLD = WHITEBG + '\033[37;1m'
+      
+class trans():
 
-   class base:
-      BLACK = '\033[30'
-      ORANGE = '\033[31'
-      GREEN = '\033[32'
-      YELLOW = '\033[33'
-      BLUE = '\033[34'
-      PINK = '\033[35'
-      AQUA = '\033[36'
-      BEIGE = '\033[37'
-      SILVER = '\033[90'
-      OKORANGE = '\033[91'
-      OKGREEN = '\033[92'
-      OKYELLOW = '\033[93'
-      OKBLUE = '\033[94'
-      OKPINK = '\033[95'
-      OKAQUA = '\033[96'
-      OKBEIGE = '\033[97'
-      BOLDTXT = '\033[99'
+   fdict = {}
+   bdict = {}
+   sdict = {}
+
+   fdict['black'] = 30
+   fdict['orange'] = 31
+   fdict['green'] = 32
+   fdict['yellow'] = 33
+   fdict['blue'] = 34
+   fdict['pink'] = 35
+   fdict['aqua'] = 36
+   fdict['white'] = 37
+   fdict['silver'] = 90
+
+   bdict['black'] = 40
+   bdict['red'] = 41
+   bdict['green'] = 42
+   bdict['yellow'] = 43
+   bdict['blue'] = 44
+   bdict['pink'] = 45
+   bdict['aqua'] = 46
+   bdict['white'] = 47
+
+   sdict['bold'] = 1
+   sdict['under'] = 4
+   sdict['blink'] = 5
+   sdict['inverse'] = 7
+   sdict['clear'] = 0
+   sdict['none'] = 50
+   
+   def colorize(foreground, background, style, text):
+   
+      fr = foreground.lower()
+      bk = background.lower()
+      st = style.lower()
+   
+      fval = fdict.get(foreground, 50)
+      bval = bdict.get(background, 50)
+      sval = sdict.get(style, 50)
+      
+      if sum(fval, bval, sval) == 150:
+         str = ''
+      
+      elif 50 not in {fval, bval, sval}:
+         str = '\033[%dm\033[%d;%dm' % (bval, fval, sval)
+      
+      elif sval == 50:
+         if fval == 50:
+            str = '\033[%dm' % bval
+         elif bval == 50:
+            str = '\033[%dm' % fval
+         else:
+            str = '\033[%dm\033[%dm' % (fval, bval)
+      
+      elif bval == 50:
+         str = '\033[%d;%dm' % (bval, sval)
+      
+      else:
+         str = '\033[%d;%dm' % (fval, sval)
+      
+      result = str + text + '\033[0m'
+      return result
