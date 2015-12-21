@@ -33,3 +33,7 @@ copyright, copyleft (C) 2014-2015  vvn [ lost @ nobody . ninja ]
 
     chmod +x encryptlist.py
     ./encryptlist.py
+
+**verify using GPG public key for v @ vvn . ninja:
+
+    F6679EC4

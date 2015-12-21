@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # ENCRYPTLIST.PY version 0.3 - encryption for lists, extension for email2file
 # author: vvn [ v @ vvn . ninja ]
-# version release date: Dec 20, 2015
+# version release date: Dec 21, 2015
 # latest version will be available here:
 # https://github.com/eudemonics/email2file.git
 #####

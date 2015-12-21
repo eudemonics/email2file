@@ -4,7 +4,7 @@
 # for enhanced security and greater protection of your sensitive data,
 # please use ENCRYPTLIST.PY (also included with this program)
 # author: vvn [ v @ vvn . ninja ]
-# version release date: Dec 20, 2015
+# version release date: Dec 21, 2015
 # latest version will be available here:
 # https://github.com/eudemonics/email2file.git
 #####
