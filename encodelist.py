@@ -1,25 +1,41 @@
 #!/usr/bin/env python
-# ENCODELIST.PY - base64 encoding for lists integrated with EMAIL2FILE
+# ENCODELIST.PY version 0.2 - base64 encoding for lists integrated with EMAIL2FILE
 # *** BASE64 IS NOT A SECURE ALGORITHM FOR PROTECTING YOUR DATA ***
 # for enhanced security and greater protection of your sensitive data,
 # please use ENCRYPTLIST.PY (also included with this program)
-# author: vvn [ vvn @ notworth . it ]
+# author: vvn [ v @ vvn . ninja ]
+# version release date: Dec 20, 2015
 # latest version will be available here:
 # https://github.com/eudemonics/email2file.git
+#####
+##### USER LICENSE AGREEMENT & DISCLAIMER
+##### copyright, copyleft (C) 2015  vvn <v @ vvn . ninja>
+##### 
+##### This program is FREE software: you can use it, redistribute it and/or modify
+##### it as you wish. Copying and distribution of this file, with or without modification,
+##### are permitted in any medium without royalty provided the copyright
+##### notice and this notice are preserved. This program is offered AS-IS,
+##### WITHOUT ANY WARRANTY; without even the implied warranty of
+##### MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+##### GNU General Public License for more details.
+##### 
+##### For more information, please refer to the "LICENSE AND NOTICE" file that should
+##### accompany all official download releases of this program. 
+#####
 
 import base64, os, sys, re
 
 global encfile
 
-print('''
+intro = '''
 ###############################################
 ###############################################
 ############# #  # #  # #  # #  # #############
 #####                                     #####
 #####     ENCODELIST.PY FOR EMAIL2FILE    #####
 #####                                     #####
-#######           VERSION 0.1           #######
-#########  by: vvn [vvn@notworth.it]  #########
+#######           VERSION 0.2           #######
+#########    by: vvn [v@vvn.ninja]    #########
 ###########                         ###########
 ############# #  # #  # #  # #  # #############
 ###############################################
@@ -28,11 +44,15 @@ print('''
 ############# #  # #  # #  # #  # #############
 #####                                     #####
 #####            RELEASE DATE:            #####
-#####           APRIL 24, 2015            #####
+#####            DEC 20, 2015             #####
 #####                                     #####
 ############# #  # #  # #  # #  # #############
 ###############################################
-''')
+
+     *** BASE64 ENCODING IS NOT SECURE ***     
+  ** ENCRYPT YOUR DATA WITH ENCRYPTLIST.PY **  
+
+'''
 
 def encode_pass(fn, newfile):
 
@@ -110,40 +130,41 @@ def gen_list():
          newfile = raw_input("invalid format. please enter a valid filename --> ")
       print("decoding each entry in password file %s..") % encfile 
       encode_pass(encfile, newfile)
-   def exitmenu():
-      exitsel = raw_input("enter 1 to run script again. \nenter 2 to run encryptlist.py script for extra security. \nenter 3 to run email2file script. \nenter 4 to print encoded/decoded data. \nto exit, enter 5 --> ")
-
-      while not re.search(r'^[1-5]$', exitsel):
-         exitsel = raw_input("invalid entry. enter 1 to run script again, 2 to run encryptlist.py, 3 to run email2file script, 4 to show encoded/decoded data, or 5 to exit --> ")
-   
-      if exitsel == '1':
-         gen_list()
-         exitmenu()
       
-      elif exitsel == '2':
-         os.system('chmod +x encryptlist.py')
-         os.system('python encryptlist.py')
-         sys.exit()
-   
-      elif exitsel == '3':
-         os.system('chmod +x email2file.py')
-         os.system('./email2file.py')
-         sys.exit()
-   
-      elif exitsel == '4':
-         ef = open(encfile, "r+")
-         for n in ef.readlines():
-            print("encoded: %s" % n)
-            dectext = base64.b64decode(n)
-            print("decoded: %s" % dectext)
-         ef.close()
-         exitmenu()
+def exitmenu():
+   exitsel = raw_input("enter 1 to run script again. \nenter 2 to run encryptlist.py script for extra security. \nenter 3 to run email2file script. \nenter 4 to print encoded/decoded data. \nto exit, enter 5 --> ")
 
-      else:
-         print("goodbye!")
-   exitmenu()
+   while not re.search(r'^[1-5]$', exitsel):
+      exitsel = raw_input("invalid entry. enter 1 to run script again, 2 to run encryptlist.py, 3 to run email2file script, 4 to show encoded/decoded data, or 5 to exit --> ")
+   
+   if exitsel == '1':
+      gen_list()
+      exitmenu()
+   
+   elif exitsel == '2':
+      import encryptlist
+      encryptlist.gen_list()
+      sys.exit()
 
-print('''
+   elif exitsel == '3':
+      import email2file
+      sys.exit()
+
+   elif exitsel == '4':
+      ef = open(encfile, "r+")
+      for n in ef.readlines():
+         print("encoded: %s" % n)
+         dectext = base64.b64decode(n)
+         print("decoded: %s" % dectext)
+      ef.close()
+      exitmenu()
+
+   else:
+      print("goodbye!")
+
+if __name__ == '__main__':
+   print(intro)
+   print('''
 
 
 ***** BASE64 ENCODING IS NOT A SECURE METHOD *****   
@@ -156,20 +177,22 @@ into a terminal under the same working directory.
  
  
 
-to continue with base64 encoding, enter 1.''')
+to continue with base64 encoding, enter 1.
+''')
 
-selscript = raw_input("to switch to encryptlist.py instead, enter 2. --> ")
+   selscript = raw_input("to switch to encryptlist.py instead, enter 2. --> ")
 
-while not re.match(r'^[12]$', selscript):
-   selscript = raw_input("invalid selection. to continue with base64 encoding, enter 1. \nto run encryption module instead, enter 2. --> ")
+   while not re.match(r'^[12]$', selscript):
+      selscript = raw_input("invalid selection. to continue with base64 encoding, enter 1. \nto run encryption module instead, enter 2. --> ")
    
-if selscript == '1':
-   gen_list()
+   if selscript == '1':
+      gen_list()
+      exitmenu()
    
-else:
-   os.system('python encryptlist.py')
+   else:
+      import encryptlist
+      encryptlist.gen_list()
+
+   print("exiting program..")
+   
    sys.exit()
-
-print("exiting program..")
-   
-sys.exit()
