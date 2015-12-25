@@ -1,8 +1,9 @@
 #!/usr/bin/env python
 #
-##### EMAIL2FILE v1.9 BETA
+##### EMAIL2FILE v2.0!
 ##### AUTHOR: vvn < root @ nobody . ninja >
-##### VERSION RELEASE: December 20, 2015
+##### VERSION RELEASE: December 21, 2015
+##### GPG public key: F6679EC4
 #####
 ##### SAVE EMAIL LISTS AS PLAIN TEXT format in script directory with one address per line.
 ##### you can include the password, if known, as a base64-encoded string 
@@ -108,7 +109,7 @@ from ansilist import ac
 
 colorintro = '''
 \033[34m=====================================\033[33m
-----------\033[36m EMAIL2FILE v1.9 \033[33m----------
+----------\033[36m EMAIL2FILE v2.0 \033[33m----------
 -------------------------------------
 -----------\033[35m author : vvn \033[33m------------
 ---------\033[32m root@nobody.ninja \033[33m---------
@@ -122,7 +123,7 @@ colorintro = '''
 
 cleanintro = '''
 =====================================
----------- EMAIL2FILE v1.9 ----------
+---------- EMAIL2FILE v2.0 ----------
 -------------------------------------
 ----------- author : vvn ------------
 --------- lost@nobody.ninja ---------
@@ -174,8 +175,13 @@ print(progintro)
 
 time.sleep(0.9)
 
+############################
+#      START PROGRAM       #
+############################
+
 # CHECK IF SINGLE EMAIL (1) OR LIST OF MULTIPLE EMAIL ADDRESSES IS USED (2)
-print('''\033[34;1mSINGLE EMAIL ADDRESS OR LIST OF MULTIPLE EMAIL ADDRESSES?\033[0m
+print('''
+\033[34;1mSINGLE EMAIL ADDRESS OR LIST OF MULTIPLE EMAIL ADDRESSES?\033[0m
 list of multiple email addresses must be in text format
 with one email address per line. PASSWORD LIST with one
 password per line in plain text or base64 encoded format
@@ -192,7 +198,6 @@ while not re.search(r'^[12]$', qtyemail):
 
 # CHECK IF WORD LIST USED FOR PASSWORD
 usewordlist = raw_input('do you want to use a word list rather than supply a password? enter Y/N --> ')
-
 while not re.search(r'^[nyNY]$', usewordlist):
    usewordlist = raw_input('invalid entry. enter Y to use word list or N to supply password --> ')
 
@@ -208,7 +213,6 @@ outputdir = 'emails'
 savedir = os.path.join(cwd, outputdir)
 
 if changedir.lower() == 'y':
-
    savedir = raw_input('please enter the full path of where to save inbox contents --> ')
    if os.name == 'nt' or sys.platform == 'win32':
       matchstr = r'^[a-zA-Z]:\\(((?![<>:"/\\|?*]).)+((?<![ .])\\)?)*$'
@@ -909,7 +913,7 @@ def getimap(emailaddr, emailpass, imap_server, sslcon):
                else:
 
                   if ext == ".asc" or ext == ".gpg":
-                     loggin.info('downloading encrypted PGP message: %s' % str(file_name))
+                     logging.info('downloading encrypted PGP message: %s' % str(file_name))
                      if usecolor == 'color':
                         print('\n\033[34mdownloading encrypted PGP message: \033[33m %s \033[0m\n' % str(file_name))
                      else:
@@ -1079,11 +1083,15 @@ def getimap(emailaddr, emailpass, imap_server, sslcon):
 if qtyemail == '2':
    emaillistfile = raw_input('please copy the email list file to the script directory, then enter filename --> ')
    while not os.path.isfile(emaillistfile):
-      emaillistfile = raw_input('the file path specified does not exist or is not accessible. please check the file and enter again --> ')
+      emaillistfile = raw_input('the file path specified does not exist or is not accessible. please check the file path and enter again --> ')
       logging.warning('email list file not found: %s' % str(emaillistfile))
 
+   if os.path.exists(emaillistfile):
+      print('\nfile found: %s \n' % emaillistfile)
+      
    logging.info('using email list file %s' % str(emaillistfile))
-   ef = open(emaillistfile, "r")
+   ef = open(emaillistfile, 'r+')
+   ef.seek(0)
    emailfile = ef.readlines()
    eflen = len(emailfile)
 
@@ -1197,9 +1205,11 @@ if qtyemail == '2':
             
          logging.info('using encryption key file %s to decrypt word list.' % str(secretkey))
          if usecolor == 'color':
-            print(ac.AQUABOLD)
-         print('\n\n*** EMAIL2FILE CANNOT VALIDATE IF A PASSPHRASE IS CORRECT OR INCORRECT. WRONG PASSPHRASES WILL SIMPLY RESULT IN MALFORMED DATA WHILE ATTEMPTING TO DECRYPT. ***\n\n')
+            print(ac.PINKBOLD + '\n\n********************************************************************************')
+            print(ac.YELLOWBOLD)
+         print('*** EMAIL2FILE CANNOT VALIDATE IF A PASSPHRASE IS CORRECT OR INCORRECT. WRONG PASSPHRASES WILL SIMPLY RESULT IN MALFORMED DATA WHILE ATTEMPTING TO DECRYPT. ***\n')
          if usecolor == 'color':
+            print(ac.PINKBOLD + '******************************************************************************** \n\n')
             print(ac.CLEAR)
          encpass = getpass.getpass('please enter the secret passphrase used to generate the encrypted file --> ')
          AES_Dec = lambda c, e: c.decrypt(base64.b64decode(e)).rstrip('&')
@@ -1424,13 +1434,44 @@ if qtyemail == '2':
    ###########################
    else:
    
+      eflen = len(emailfile)
+      logging.info('found %d email addresses in email list file %s' % (eflen, emaillistfile))
       efcount = 1
+      lenfile = len(emailfile)
+      
+      if usecolor == 'color':
+         print("\n\033[31m%d EMAIL ADDRESSES IN FILE:\033[0m %s \n" % (eflen, emaillistfile))
+      else:
+         print("\n%d EMAIL ADDRESSES IN FILE: %s \n" % (eflen,emaillistfile))
+      countdown = lenfile
       
       while efcount <= eflen:
-         for line in ef.readlines():
+         for index,line in enumerate(emailfile):
+      
+            emindex = index + 1
+            countdown -= 1
+         
+            empercent = float(emindex) / float(lenfile)
+            empercent2 = empercent - .05
+            pr2 = int(empercent2 * 100)
+            pr = int(empercent * 100)
+         
+            progress = lambda a: str(a) + "%"
+         
+            if usecolor == 'color':
+               print("PROGRESS:\033[36;1m %s \033[0m" % str(emindex))
+               print("TOTAL EMAIL ADDRESSES:\033[36;1m %s \033[0m\n" % str(lenfile))
+               print("PERCENT COMPLETE:\033[36;1m %s \033[0m\n" % progress(pr2))
+         
+            else:
+               print("PROGRESS: %s" % str(emindex))
+               print("TOTAL EMAIL ADDRESSES: %s \n" % str(lenfile))
+               print("PERCENT COMPLETE: %s \n" % progress(pr2))
+         
+            logging.info('tried ' + str(emindex) + ' entries out of ' + str(lenfile))
 
             # WITH EMAIL AND PASSWORD IN SAME FILE
-            if re.search(r'^[\,]$', line):
+            if re.search(',', line):
 
                line = line.strip()
                linevals = line.split(",")
@@ -1447,8 +1488,10 @@ if qtyemail == '2':
             else:
                lnemail = line.strip()
                print('using email address: ' + lnemail)
+               logging.info('trying email: ' + lnemail)
                lnpass = getpass.getpass('please enter password for above account --> ')
-            atdomain = re.search("@.*", emailaddr).group()
+
+            atdomain = re.search("@.*", lnemail).group()
             emaildomain = atdomain[1:]
 
             imap_server = 'imap.' + emaildomain
@@ -1479,7 +1522,7 @@ if qtyemail == '2':
                if 'OK' in loginok:
                   break
                else:
-                  print('login failure. trying next entry..')
+                  print('\nlogin failure. trying next entry.. \n  ')
                   continue
 
             efcount += 1
@@ -1488,7 +1531,7 @@ if qtyemail == '2':
             getimap(lnemail, lnpass, res_ip, sslcon)
 
       if efcount > eflen:
-         print("all emails and passwords have been processed.")
+         print("\nall emails and passwords have been processed. exiting program.. \n")
          logging.info('processing complete for all emails and passwords. exiting program..')
          sys.exit(0)
 
