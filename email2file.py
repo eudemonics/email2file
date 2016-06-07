@@ -98,7 +98,6 @@ from __future__ import print_function
 import email, base64, getpass, imaplib, threading
 from email.header import decode_header
 import re, sys, os, os.path, socket, time, traceback, logging
-import gnupg
 from subprocess import Popen
 from datetime import datetime, date
 from threading import Thread, Timer
@@ -106,6 +105,18 @@ from Crypto.Cipher import AES
 from Crypto import Random
 from Crypto.Util import Counter
 from ansilist import ac
+
+try:
+   import gnupg
+except:
+   pass
+   try:
+      os.system('easy_install https://pypi.python.org/packages/2.7/g/gnupg/gnupg-2.0.2-py2.7.egg#md5=65a17f636ebfa1c6c38e8ac4862f171a')
+      import gnupg
+   except:
+      pass
+      print('\nunable to install gnupg module. you may need to run the \'easy_install gnupg\' command with administrator privileges. GPG decryption and signature validation will be disabled.\n')
+      use_gpg = 0
 
 colorintro = '''
 \033[34m=====================================\033[33m
