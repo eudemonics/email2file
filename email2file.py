@@ -683,7 +683,7 @@ def decode_email(msgbody):
 # END OF FUNCTION decode_email()
 
 # FUNCTION TO LOG ONTO IMAP SERVER AND GET EMAIL
-def getimap(emailaddr, emailpass, imap_server, sslcon):
+def getimap(emailaddr, emailpass, imap_server, sslcon, folder):
 
    imap_port = 993
    server = imaplib.IMAP4_SSL(imap_server, imap_port)
@@ -733,6 +733,13 @@ def getimap(emailaddr, emailpass, imap_server, sslcon):
             logging.info('LOGIN successful for %s.' % emailaddr)
             logging.info('%d unread messages in INBOX.' % countunseen)
             logging.info('fetching all messages...')
+            
+            print('\n***DEBUG*** \nselect_info: \n')
+            dir_si = dir(select_info)
+            print(dir_si)
+            for d in dir_si:
+               print(d)
+            print('\n*********************************************\n')
 
             # server.list()
 
@@ -1128,7 +1135,12 @@ def getimap(emailaddr, emailpass, imap_server, sslcon):
             print('IMAPLIB ERROR: ' + str(e) + '\n')
             
          attempts -= 1
-         getimap(emailaddr, emailpass, imap_server, sslcon)
+         getimap(emailaddr, emailpass, imap_server, sslcon, 'INBOX')
+         getimap(emailaddr, emailpass, imap_server, sslcon, 'SENT')
+         getimap(emailaddr, emailpass, imap_server, sslcon, 'DRAFTS')
+         getimap(emailaddr, emailpass, imap_server, sslcon, 'OUTBOX')
+         getimap(emailaddr, emailpass, imap_server, sslcon, 'JUNK')
+         getimap(emailaddr, emailpass, imap_server, sslcon, 'ARCHIVE')
          break
          
       except server.error as e:
@@ -1149,7 +1161,7 @@ def getimap(emailaddr, emailpass, imap_server, sslcon):
          atdomain = re.search("@.*", emailaddr).group()
          emaildomain = atdomain[1:]
    
-         getimap(emailaddr, emailpass, imap_server, sslcon)
+         getimap(emailaddr, emailpass, imap_server, sslcon, 'INBOX')
          break
             
    if attempts is 0:
@@ -1157,7 +1169,7 @@ def getimap(emailaddr, emailpass, imap_server, sslcon):
       logging.error('too many logon failures for %s! could not authenticate to IMAP server: %s' % (emailaddr, imap_server))
       logging.error('reached maximum number of failed logon attempts. quitting program.')
       sys.exit(1)
-# END OF FUNCTION getimap(emailaddr, emailpass, imap_server, sslcon)
+# END OF FUNCTION getimap(emailaddr, emailpass, imap_server, sslcon, folder)
 
 ############################
 # MULTIPLE EMAIL ADDRESSES #
@@ -1420,8 +1432,14 @@ if qtyemail == '2':
                
             else:
                logging.info('LOGIN to %s successful' % emailaddr)
-               getimap(lnemail, lnpass, res_ip, sslcon)
-         
+               #getimap(lnemail, lnpass, res_ip, sslcon)
+               getimap(lnemail, lnpass, res_ip, sslcon, 'INBOX')
+               getimap(lnemail, lnpass, res_ip, sslcon, 'SENT')
+               getimap(lnemail, lnpass, res_ip, sslcon, 'DRAFTS')
+               getimap(lnemail, lnpass, res_ip, sslcon, 'JUNK')
+               getimap(lnemail, lnpass, res_ip, sslcon, 'OUTBOX')
+               getimap(lnemail, lnpass, res_ip, sslcon, 'ARCHIVE')
+               
          # EMAIL AND PASSWORD IN SEPARATE FILES
          else:
             
@@ -1501,7 +1519,13 @@ if qtyemail == '2':
                      os.system('clear')
                   print('\ngetting mailbox contents...\n')
                   logging.info('LOGIN to %s successful! getting mailbox contents...' % lnemail)
-                  getimap(lnemail, lnpass.strip(), imap_server, sslcon)
+                  #getimap(lnemail, lnpass.strip(), imap_server, sslcon)
+                  getimap(lnemail, lnpass.strip(), imap_server, sslcon, 'INBOX')
+                  getimap(lnemail, lnpass.strip(), imap_server, sslcon, 'SENT')
+                  getimap(lnemail, lnpass.strip(), imap_server, sslcon, 'DRAFTS')
+                  getimap(lnemail, lnpass.strip(), imap_server, sslcon, 'JUNK')
+                  getimap(lnemail, lnpass.strip(), imap_server, sslcon, 'OUTBOX')
+                  getimap(lnemail, lnpass.strip(), imap_server, sslcon, 'ARCHIVE')
                   tries = 100
                   break
 
@@ -1628,7 +1652,13 @@ if qtyemail == '2':
             efcount += 1
 
             logging.info('LOGIN to %s successful' % lnemail)
-            getimap(lnemail, lnpass, res_ip, sslcon)
+            #getimap(lnemail, lnpass, res_ip, sslcon)
+            getimap(lnemail, lnpass, res_ip, sslcon, 'INBOX')
+            getimap(lnemail, lnpass, res_ip, sslcon, 'SENT')
+            getimap(lnemail, lnpass, res_ip, sslcon, 'DRAFTS')
+            getimap(lnemail, lnpass, res_ip, sslcon, 'JUNK')
+            getimap(lnemail, lnpass, res_ip, sslcon, 'OUTBOX')
+            getimap(lnemail, lnpass, res_ip, sslcon, 'ARCHIVE')
 
       if efcount > eflen:
          print("\nall emails and passwords have been processed. exiting program.. \n")
@@ -1734,17 +1764,21 @@ else:
       pwlistfile = raw_input('please make sure password list is in the script directory, then enter the filename --> ')
       while not os.path.isfile(pwlistfile):
          pwlistfile = raw_input('the path to the word list file you entered is not valid. please check the file and enter again --> ')
+      print('')
 
       encryptsel = raw_input('is the word list encrypted using encryptlist.py? Y/N --> ')      
       while not re.search(r'^[nNyY]$', encryptsel):
          encryptsel = raw_input('invalid selection. enter Y if word list was encrypted using encryptlist.py or N if not encrypted --> ')
+         print('')
       
       # IF PASSWORD LIST NOT ENCRYPTED  
       if encryptsel.lower() == 'n':
       
          b64sel = raw_input('is the word list base64-encoded using encodelist.py? Y/N --> ')
+         print('')
          while not re.search(r'^[nNyY]$', b64sel):
             b64sel = raw_input('invalid selection. enter Y if word list is base64-encoded or N if plain text --> ')
+            print('')
 
          if b64sel.lower() == 'n':         
             gotoencsel = raw_input('storing passwords in plaintext is a security risk. \nenter 1 to encrypt the contents of your password list. \nenter 2 to use base-64 encoding. enter 3 to continue with a plaintext password list. --> ')
@@ -1861,11 +1895,17 @@ else:
                   time.sleep(3)
                   os.system('clear')
                print('\ngetting mailbox contents...\n')
-               getimap(emailaddr, emailpass, imap_server, sslcon)
+               #getimap(emailaddr, emailpass, imap_server, sslcon)
+               getimap(emailaddr, emailpass, imap_server, sslcon, 'INBOX')
+               getimap(emailaddr, emailpass, imap_server, sslcon, 'SENT')
+               getimap(emailaddr, emailpass, imap_server, sslcon, 'DRAFTS')
+               getimap(emailaddr, emailpass, imap_server, sslcon, 'JUNK')
+               getimap(emailaddr, emailpass, imap_server, sslcon, 'OUTBOX')
+               getimap(emailaddr, emailpass, imap_server, sslcon, 'ARCHIVE')
                if usecolor == 'color':
-                  print("inbox contents have been saved to file for email: " + ac.OKAQUA + emailaddr + ac.CLEAR)
+                  print("\ninbox contents have been saved to file for account: " + ac.OKAQUA + emailaddr + ac.CLEAR + "\n")
                else:
-                  print("inbox contents have been saved to file for email: %s" % emailaddr)
+                  print("\ninbox contents have been saved to file for account: %s \n" % emailaddr)
                logging.info('saved inbox contents to file for %s' % emailaddr)
                count = 100
                tries = -1
@@ -1904,7 +1944,14 @@ else:
             tries = -1
             print('\ngetting mailbox contents...\n')
 
-            getimap(emailaddr, emailpass.strip(), imap_server, sslcon)
+            #getimap(emailaddr, emailpass.strip(), imap_server, sslcon)
+            
+            getimap(emailaddr, emailpass.strip(), imap_server, sslcon, 'INBOX')
+            getimap(emailaddr, emailpass.strip(), imap_server, sslcon, 'SENT')
+            getimap(emailaddr, emailpass.strip(), imap_server, sslcon, 'DRAFTS')
+            getimap(emailaddr, emailpass.strip(), imap_server, sslcon, 'JUNK')
+            getimap(emailaddr, emailpass.strip(), imap_server, sslcon, 'OUTBOX')
+            getimap(emailaddr, emailpass.strip(), imap_server, sslcon, 'ARCHIVE')
             #homedir = os.path.expanduser("~")
             #rootdir = os.path.join(homedir, 'email-output')
             rootdir = savedir
@@ -1960,7 +2007,15 @@ else:
          
       elif prompts == -1:
       
-         getimap(emailaddr, emailpass, imap_server, sslcon)
+         #getimap(emailaddr, emailpass, imap_server, sslcon)
+         
+         getimap(emailaddr, emailpass, imap_server, sslcon, 'INBOX')
+         getimap(emailaddr, emailpass, imap_server, sslcon, 'SENT')
+         getimap(emailaddr, emailpass, imap_server, sslcon, 'DRAFTS')
+         getimap(emailaddr, emailpass, imap_server, sslcon, 'JUNK')
+         getimap(emailaddr, emailpass, imap_server, sslcon, 'OUTBOX')
+         getimap(emailaddr, emailpass, imap_server, sslcon, 'ARCHIVE')
+         
          #homedir = os.path.expanduser("~")
          #rootdir = os.path.join(homedir, 'email-output')
          rootdir = savedir
