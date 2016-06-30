@@ -949,6 +949,7 @@ def getimap(emailaddr, emailpass, imap_server, sslcon, folder):
                         file_name = str(file_name)
                         
                      file_name = str(email_uid) + ' - ' + str(z) + ' - ' + str(file_name)
+                     att_path = os.path.join(str(save_path), 'attachments')
                      complete_name = os.path.join(str(att_path), str(file_name))
                      if usecolor == 'color':
                         print(ac.OKAQUA + '\n***SAVING ATTACHMENT: ' + ac.OKPINK +  str(file_name) + ac.CLEAR + '\n')
