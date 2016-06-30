@@ -635,7 +635,7 @@ def decode_email(msgbody):
             cryptpayload = part.get_payload()
             a = 0
             for cryptmess in part.get_payload(0):
-               print('\n***DEBUG*** \ninstances in part.get_payload(0)
+               print('\n***DEBUG*** \n instances in part.get_payload(0)')
                print(str(cryptmess))
                print('\n')
                print(dir(cryptmess))
