@@ -1884,7 +1884,7 @@ else:
 
       encryptsel = raw_input('is the word list encrypted using encryptlist.py? Y/N --> ')      
       while not re.search(r'^[nNyY]$', encryptsel):
-         encryptsel = raw_input('invalid selection. enter Y if word list was encrypted using encryptlist.py or N if not encrypted --> ')a
+         encryptsel = raw_input('invalid selection. enter Y if word list was encrypted using encryptlist.py or N if not encrypted --> ')
          print('')
       
       # IF PASSWORD LIST NOT ENCRYPTED  
