@@ -1,8 +1,8 @@
 #!/usr/bin/env python
 #
-##### EMAIL2FILE v2.2!
+##### EMAIL2FILE v2.3!
 ##### AUTHOR: vvn < root @ nobody . ninja >
-##### VERSION RELEASE: June 26, 2016
+##### VERSION RELEASE: June 30, 2016
 ##### GPG public key: F6679EC4
 #####
 ##### SAVE EMAIL LISTS AS PLAIN TEXT format in script directory with one address per line.
@@ -120,7 +120,7 @@ except:
 
 colorintro = '''
 \033[34m=====================================\033[33m
-----------\033[36m EMAIL2FILE v2.2 \033[33m----------
+----------\033[36m EMAIL2FILE v2.3 \033[33m----------
 -------------------------------------
 -----------\033[35m author : vvn \033[33m------------
 ---------\033[32m root@nobody.ninja \033[33m---------
@@ -134,7 +134,7 @@ colorintro = '''
 
 cleanintro = '''
 =====================================
----------- EMAIL2FILE v2.2 ----------
+---------- EMAIL2FILE v2.3 ----------
 -------------------------------------
 ----------- author : vvn ------------
 --------- root@nobody.ninja ---------
@@ -721,7 +721,7 @@ def decode_email(msgbody):
 # END OF FUNCTION decode_email()
 
 # FUNCTION TO LOG ONTO IMAP SERVER AND GET EMAIL
-def getimap(emailaddr, emailpass, imap_server, sslcon, folder):
+def getimap(emailaddr, emailpass, imap_server, sslcon):
 
    imap_port = 993
    server = imaplib.IMAP4_SSL(imap_server, imap_port)
@@ -743,7 +743,7 @@ def getimap(emailaddr, emailpass, imap_server, sslcon, folder):
 
          if loginstatus == 'OK':
 
-            select_info = server.select(folder)
+            select_info = server.select('INBOX')
             status, unseen = server.search(None, 'UNSEEN')
             typ, listdata = server.list()
             countunseen = len(unseen)
@@ -756,7 +756,7 @@ def getimap(emailaddr, emailpass, imap_server, sslcon, folder):
                print('\033[0m\nFOLDERS:\n\033[33m')
                for l in listdata:
                   print(str(l), '\n')
-               print('\033[34m\nlogin successful, fetching emails in %s.. \033[0m\n' % folder)
+               print('\033[34m\nlogin successful, fetching emails.. \033[0m\n')
 
             else:
 
@@ -766,10 +766,10 @@ def getimap(emailaddr, emailpass, imap_server, sslcon, folder):
                print('\nFOLDERS:\n')
                for l in listdata:
                   print(str(l), '\n')
-               print('\nlogin successful, fetching emails in %s.. \n' % folder)
+               print('\nlogin successful, fetching emails.. \n')
 
             logging.info('LOGIN successful for %s.' % emailaddr)
-            logging.info('%d unread messages in %s.' % (countunseen, folder))
+            logging.info('%d unread messages in inbox' % countunseen)
             logging.info('fetching all messages...')
 
             # server.list()
@@ -1113,7 +1113,7 @@ def getimap(emailaddr, emailpass, imap_server, sslcon, folder):
                         
                         gpgfile.close()
                   
-                  if ".sig" in ext:
+                  if ".sig" in ext or ".p7s" in ext:
                      if usecolor == 'color':
                         print('\n\033[34mdownloading PGP signature for sender: %s \033[0m\n' % msgfrom)
                      else:
@@ -1151,7 +1151,7 @@ def getimap(emailaddr, emailpass, imap_server, sslcon, folder):
                      bodyfile.write(body)
                      bodyfile.close()
                          
-                  if ext not in ('.sig', '.sig.asc', '.gpg', '.sig'):
+                  if ext not in ('.sig', '.sig.asc', '.gpg', '.p7s'):
                      bodyfile = open(complete_name, 'wb+')
                      bodyfile.write("SENDER: \n")
                      bodyfile.write(msgfrom)
@@ -1181,11 +1181,11 @@ def getimap(emailaddr, emailpass, imap_server, sslcon, folder):
 
             if usecolor == 'color':
 
-               print('\033[32m%s contents successfully saved to file. YAY! \033[0m\n' % folder)
+               print('\n\033[32minbox contents successfully saved to file. YAY! \033[0m\n')
 
             else:
 
-               print('%s contents successfully saved to file. YAY!\n' % folder)
+               print('\ninbox contents successfully saved to file. YAY!\n')
             
             logging.info('inbox contents for %s written to file.' % str(emailaddr))
 
@@ -1224,9 +1224,8 @@ def getimap(emailaddr, emailpass, imap_server, sslcon, folder):
             print('IMAPLIB ERROR: ' + str(e) + '\n')
             
          attempts -= 1
-         for folder in 'INBOX', 'SENT', 'ARCHIVE', 'DRAFTS', 'JUNK', 'OUTBOX', 'TRASH':
-            print('\n1181 getting folder: %s \n' % folder)
-            getimap(emailaddr, emailpass, imap_server, sslcon, folder)
+         print('\ngetting inbox contents for: %s \n' % emailaddr)
+         getimap(emailaddr, emailpass, imap_server, sslcon)
          break
          
       except server.error as e:
@@ -1247,9 +1246,7 @@ def getimap(emailaddr, emailpass, imap_server, sslcon, folder):
          atdomain = re.search("@.*", emailaddr).group()
          emaildomain = atdomain[1:]
    
-         for folder in 'INBOX', 'SENT', 'ARCHIVE', 'DRAFTS', 'JUNK', 'OUTBOX', 'TRASH':
-            print('\n1204 getting folder: %s \n' % folder)
-            getimap(emailaddr, emailpass, imap_server, sslcon, folder)
+         getimap(emailaddr, emailpass, imap_server, sslcon)
          break
             
    if attempts is 0:
@@ -1257,7 +1254,7 @@ def getimap(emailaddr, emailpass, imap_server, sslcon, folder):
       logging.error('too many logon failures for %s! could not authenticate to IMAP server: %s' % (emailaddr, imap_server))
       logging.error('reached maximum number of failed logon attempts. quitting program.')
       sys.exit(1)
-# END OF FUNCTION getimap(emailaddr, emailpass, imap_server, sslcon, folder)
+# END OF FUNCTION getimap(emailaddr, emailpass, imap_server, sslcon)
 
 ############################
 # MULTIPLE EMAIL ADDRESSES #
@@ -1529,10 +1526,8 @@ if qtyemail == '2':
                
             else:
                logging.info('LOGIN to %s successful' % emailaddr)
-               #getimap(lnemail, lnpass, res_ip, sslcon)
-               for folder in 'INBOX', 'SENT', 'ARCHIVE', 'DRAFTS', 'JUNK', 'OUTBOX', 'TRASH':
-                  print('\n1478 getting folder: %s \n' % folder)
-                  getimap(lnemail, lnpass, imap_server, sslcon, folder)
+               getimap(lnemail, lnpass, res_ip, sslcon)
+               
          # EMAIL AND PASSWORD IN SEPARATE FILES
          else:
             
@@ -1620,10 +1615,9 @@ if qtyemail == '2':
                      time.sleep(3)
                      os.system('clear')
                   
-                  for folder in ('INBOX', 'SENT', 'DRAFTS', 'JUNK', 'OUTBOX', 'ARCHIVE'):
-                     print('\ngetting mailbox contents for %s...\n' % folder)
-                     logging.info('LOGIN to %s successful! getting mailbox contents...' % lnemail)
-                     getimap(lnemail, lnpass.strip(), imap_server, sslcon, folder)
+                  print('\ngetting mailbox contents for %s...\n' % lnemail)
+                  logging.info('LOGIN to %s successful! getting mailbox contents...' % lnemail)
+                  getimap(lnemail, lnpass.strip(), imap_server, sslcon)
                   tries = 100
                   break
 
@@ -1760,9 +1754,8 @@ if qtyemail == '2':
             efcount += 1
 
             logging.info('LOGIN to %s successful' % lnemail)
-            for folder in ('INBOX', 'SENT', 'DRAFTS', 'JUNK', 'OUTBOX', 'ARCHIVEsss'):
-               print('\n1689 getting folder contents for %s.. \n' % folder)
-               getimap(lnemail, lnpass, res_ip, sslcon, folder)
+            print('\ngetting inbox contents for %s.. \n' % lnemail)
+            getimap(lnemail, lnpass, res_ip, sslcon)
 
       if efcount > eflen:
          print("\nall emails and passwords have been processed. exiting program.. \n")
@@ -2021,9 +2014,9 @@ else:
                   print('\nCLEARING SCREEN IN 3 seconds...\n')
                   time.sleep(3)
                   os.system('clear')
-               for folder in ('INBOX', 'SENT', 'DRAFTS', 'JUNK', 'OUTBOX', 'ARCHIVE'):
-                  print('\ngetting mailbox contents... for %s \n' % folder)
-                  getimap(emailaddr, emailpass, imap_server, sslcon, folder)
+               
+               print('\ngetting mailbox contents... \n')
+               getimap(emailaddr, emailpass, imap_server, sslcon)
                   
                if usecolor == 'color':
                   print("\ninbox contents have been saved to file for account: " + ac.OKAQUA + emailaddr + ac.CLEAR + "\n")
@@ -2067,15 +2060,12 @@ else:
             tries = -1
             print('\ngetting mailbox contents...\n')
 
-            #getimap(emailaddr, emailpass.strip(), imap_server, sslcon)
+            getimap(emailaddr, emailpass.strip(), imap_server, sslcon)
             
-            for folder in 'INBOX', 'SENT', 'ARCHIVE', 'DRAFTS', 'JUNK', 'OUTBOX', 'TRASH':
-               print('\n1977 getting folder: %s \n' % folder)
-               getimap(emailaddr, emailpass.strip(), imap_server, sslcon, folder)
             #homedir = os.path.expanduser("~")
             #rootdir = os.path.join(homedir, 'email-output')
             rootdir = savedir
-            print("\n%s contents saved to directory: %s \n" % (folder, rootdir))
+            print("\ninbox contents saved to directory: %s \n" % rootdir)
             print("\nexiting program..\n")
             sys.exit(0)
             break
@@ -2127,24 +2117,17 @@ else:
          
       elif prompts == -1:
       
-         #getimap(emailaddr, emailpass, imap_server, sslcon)
-         
-         
-            
-         for folder in 'INBOX', 'SENT', 'ARCHIVE', 'DRAFTS', 'JUNK', 'OUTBOX', 'TRASH':
-            print('\ngetting folder: %s \n' % folder)
-            getimap(emailaddr, emailpass.strip(), imap_server, sslcon, folder)
-         
+         getimap(emailaddr, emailpass, imap_server, sslcon)
          #homedir = os.path.expanduser("~")
-            #rootdir = os.path.join(homedir, 'email-output')
-            rootdir = savedir
-            rootdir = os.path.join(savedir, folder)
-            if usecolor == 'color':
-               print("\ninbox contents have been saved to file for email: " + ac.OKAQUA + emailaddr + ac.CLEAR)
-            else:
-               print("\ninbox contents have been saved to file for email: %s" % emailaddr)
-            logging.info('saved inbox contents to file for %s' % emailaddr)
-            print("\nmailbox items can be found in directory: %s \n" % savedir)
+         #rootdir = os.path.join(homedir, 'email-output')
+         rootdir = savedir
+         #rootdir = os.path.join(savedir, folder)
+         if usecolor == 'color':
+            print("\ninbox contents have been saved to file for email: " + ac.OKAQUA + emailaddr + ac.CLEAR)
+         else:
+            print("\ninbox contents have been saved to file for email: %s" % emailaddr)
+         logging.info('saved inbox contents to file for %s' % emailaddr)
+         print("\nmailbox items can be found in directory: %s \n" % savedir)
          
       else:
          print("\nLOGIN FAILED: an unknown error has occurred.\n")
