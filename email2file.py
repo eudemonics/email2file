@@ -954,6 +954,9 @@ def getimap(emailaddr, emailpass, imap_server, sslcon):
                         
                      file_name = emailid + '-' + str(file_name)
                      att_path = os.path.join(str(save_path), 'attachments')
+                     if not os.path.exists(att_path):
+                        os.makedirs(att_path)
+                        
                      complete_name = os.path.join(str(att_path), str(file_name))
                      if usecolor == 'color':
                         print(ac.OKAQUA + '\n***SAVING ATTACHMENT: ' + ac.OKPINK +  str(file_name) + ac.CLEAR + '\n')
@@ -965,10 +968,10 @@ def getimap(emailaddr, emailpass, imap_server, sslcon):
                      pl = str(mpart.get_payload())
                      bodyfile.write(pl)
                      bodyfile.close()
-                     print('\n**************************************************\n')
-                     print('\nz = %d \n' % z)
-                     print('\n***mpart.get_payload(): \n%s \n' % pl)
-                     print('\n**************************************************\n')
+                     #print('\n**************************************************\n')
+                     #print('\nz = %d \n' % z)
+                     #print('\n***mpart.get_payload(): \n%s \n' % pl)
+                     #print('\n**************************************************\n')
                      z += 1
                
                else:
@@ -1042,10 +1045,10 @@ def getimap(emailaddr, emailpass, imap_server, sslcon):
                      bodyfile = open(complete_name, 'wb+')
                      bodyfile.seek(0)
                      bodyfile.write(body)
-                     print('''\n***DEBUG: line 1011:
-                        bodyfile.write(body) wrote to file:
-                        \n''')
-                     print(str(body))
+                     #print('''\n***DEBUG: line 1045:
+                     #   bodyfile.write(body) wrote to file:
+                     #   \n''')
+                     #print(str(body))
                      bodyfile.close()
                      
                      if use_gpg == 1:
@@ -1113,7 +1116,7 @@ def getimap(emailaddr, emailpass, imap_server, sslcon):
                         
                         gpgfile.close()
                   
-                  if ".sig" in ext or ".p7s" in ext:
+                  if ".sig" in ext or ".asc" in ext:
                      if usecolor == 'color':
                         print('\n\033[34mdownloading PGP signature for sender: %s \033[0m\n' % msgfrom)
                      else:
