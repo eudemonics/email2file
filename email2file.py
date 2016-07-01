@@ -493,12 +493,12 @@ def checklogin(emailaddr, emailpass, imap_server, sslcon):
 # FUNCTION TO CHECK FOR EMAIL FORMAT ERRORS BEFORE SUBMITTING TO SERVER
 def checkformat(emailaddr):
 
-   emailformat = 'unchecked'
+   emailformat = "unchecked"
 
-   match = re.search(r'^[_a-zA-Z0-9-]+(\.[_a-zA-Z0-9-]+)*@[a-zA-Z0-9-]+(\.[a-zA-Z0-9-]+)*(\.[a-zA-Z]{2,15})$', emailaddr)
+   match = re.search(r'^[_a-zA-Z0-9-]+(\.[_a-zA-Z0-9-]+)*@[a-zA-Z0-9-]+(\.[a-zA-Z0-9-]+)*(\.[a-zA-Z]{2,16})$', emailaddr)
 
    if not match:
-      emailformat = 'bad'
+      emailformat = "bad"
       logging.warning('bad email address format for entry: %s' % str(emailaddr))
       if usecolor == 'color':
          print('\033[31minvalid email format \033[0m\n')
@@ -506,12 +506,12 @@ def checkformat(emailaddr):
          print('invalid email format')
    
    else:
-      emailformat = 'good'
+      emailformat = "good"
       logging.info('email address is valid: %s' % emailaddr)
       if usecolor == 'color':
-         print('\033[36memail address is valid \033[0m\n')
+         print('\n\033[36memail address is valid \033[0m\n')
       else:
-         print('email address is valid')
+         print('\nemail address is valid\n')
    
    return emailformat
 # END OF FUNCTION checkformat()
@@ -947,8 +947,12 @@ def getimap(emailaddr, emailpass, imap_server, sslcon, folder):
                      if not file_name:
                         file_name = msgfrom + "--" + msgsubject + '_' + ext
                         file_name = str(file_name)
+                     
+                     
+                     # pad with 0's up to 4 digits
+                     emailid = str(email_uid).zfill(4)
                         
-                     file_name = str(email_uid) + ' - ' + str(z) + ' - ' + str(file_name)
+                     file_name = emailid + '-' + str(file_name)
                      att_path = os.path.join(str(save_path), 'attachments')
                      complete_name = os.path.join(str(att_path), str(file_name))
                      if usecolor == 'color':
@@ -1055,6 +1059,16 @@ def getimap(emailaddr, emailpass, imap_server, sslcon, folder):
                         if decrypted_data.trust_level is not None and decrypted_data.trust_level >= decrypted_data.TRUST_FULLY:
                            print('\ntrust level: %s \n' % decrypted_data.trust_text)
                         logging.info('trust level for message %s: %s - %s' % (complete_name, decrypted_data.trust_level, decrypted_data.trust_text))
+                        
+                        if decrypted_data is not None:
+                           print('\n***GnuPG INFO:*** \n')
+                           print('username: %s' % decrypted_data.username)
+                           print('key id: %s' % decrypted_data.key_id)
+                           print('signature id: %s' % decrypted_data.signature_id)
+                           print('signature timestamp: %s' % decrypted_data.sig_timestamp)
+                           print('fingerprint: %s' % decrypted_data.fingerprint)
+                           print('\n***************** \n')
+                           
                         logging.info('saved decrypted message: %s' % decrypted)
                         if usecolor == 'color':
                            print('\n\033[37mdecrypted message saved as: \033[32m%s \033[0m\n' % decrypted)
@@ -1210,7 +1224,7 @@ def getimap(emailaddr, emailpass, imap_server, sslcon, folder):
             print('IMAPLIB ERROR: ' + str(e) + '\n')
             
          attempts -= 1
-         for folder in 'INBOX', 'INBOX.Sent', 'INBOX.Archive', 'INBOX.Drafts', 'INBOX.Junk', 'INBOX.Outbox', 'INBOX.Trash':
+         for folder in 'INBOX', 'SENT', 'ARCHIVE', 'DRAFTS', 'JUNK', 'OUTBOX', 'TRASH':
             print('\n1181 getting folder: %s \n' % folder)
             getimap(emailaddr, emailpass, imap_server, sslcon, folder)
          break
@@ -1233,7 +1247,7 @@ def getimap(emailaddr, emailpass, imap_server, sslcon, folder):
          atdomain = re.search("@.*", emailaddr).group()
          emaildomain = atdomain[1:]
    
-         for folder in 'INBOX', 'INBOX.Sent', 'INBOX.Archive', 'INBOX.Drafts', 'INBOX.Junk', 'INBOX.Outbox', 'INBOX.Trash':
+         for folder in 'INBOX', 'SENT', 'ARCHIVE', 'DRAFTS', 'JUNK', 'OUTBOX', 'TRASH':
             print('\n1204 getting folder: %s \n' % folder)
             getimap(emailaddr, emailpass, imap_server, sslcon, folder)
          break
@@ -1310,7 +1324,7 @@ if qtyemail == '2':
                pwlistfile = newpwlistfile
             else:
                logging.warning('password list stored in plain text is a security risk.')
-               print('*** to encrypt your list in the future, run \'python encryptlist.py\'. to  base64-encode your list in the future, run \'python encodelist.py\' ***')
+               print('\n*** to encrypt your list in the future, run \'python encryptlist.py\'. to  base64-encode your list in the future, run \'python encodelist.py\' *** \n')
          else:
             logging.info('using base64 decoding for password list.')
 
@@ -1400,7 +1414,7 @@ if qtyemail == '2':
             print(ac.PINKBOLD + a + ac.CLEAR)
          else:
             print(a)
-         print('')
+         print('\n')
             
       # TRYING PASSWORD LIST ENTRIES ON EMAIL LOGIN               
       print("\nusing word list: ")
@@ -1408,7 +1422,7 @@ if qtyemail == '2':
          print(ac.YELLOWBOLD + pwlistfile + ac.CLEAR)
       else:
          print(pwlistfile)
-      print('')
+      print('\n')
       logging.info('using word list file: %s' % str(pwlistfile))
 
       lnemail = ''
@@ -1493,7 +1507,10 @@ if qtyemail == '2':
                socket.getaddrinfo(imap_server,0)
             except:
                pass
+               print('\ncould not resolve DNS for %s. ' % imap_server)
                imap_server = 'mail.' + emaildomain
+               print('trying %s instead...\n' % imap_server)
+               logging.warning('imap.' + emaildomain + ' failed to resolve to an IP address. trying mail.' + emaildomain)
             
             res_server, res_ip = resolveimap(imap_server)
             
@@ -1513,7 +1530,7 @@ if qtyemail == '2':
             else:
                logging.info('LOGIN to %s successful' % emailaddr)
                #getimap(lnemail, lnpass, res_ip, sslcon)
-               for folder in 'INBOX', 'INBOX.Sent', 'INBOX.Archive', 'INBOX.Drafts', 'INBOX.Junk', 'INBOX.Outbox', 'INBOX.Trash':
+               for folder in 'INBOX', 'SENT', 'ARCHIVE', 'DRAFTS', 'JUNK', 'OUTBOX', 'TRASH':
                   print('\n1478 getting folder: %s \n' % folder)
                   getimap(lnemail, lnpass, imap_server, sslcon, folder)
          # EMAIL AND PASSWORD IN SEPARATE FILES
@@ -1526,6 +1543,15 @@ if qtyemail == '2':
 
             imap_server = 'imap.' + emaildomain
             imap_port = 993
+            
+            try:
+               socket.getaddrinfo(imap_server,0)
+            except:
+               pass
+               print('\ncould not resolve DNS for %s. ' % imap_server)
+               imap_server = 'mail.' + emaildomain
+               print('trying %s instead...\n' % imap_server)
+               logging.warning('imap.' + emaildomain + ' failed to resolve to an IP address. trying mail.' + emaildomain)
             
             res_server, res_ip = resolveimap(imap_server)
             
@@ -1693,6 +1719,16 @@ if qtyemail == '2':
             imap_server = 'imap.' + emaildomain
             imap_port = 993
             
+            
+            try:
+               socket.getaddrinfo(imap_server,0)
+            except:
+               pass
+               print('\ncould not resolve DNS for %s. ' % imap_server)
+               imap_server = 'mail.' + emaildomain
+               print('trying %s instead...\n' % imap_server)
+               logging.warning('imap.' + emaildomain + ' failed to resolve to an IP address. trying mail.' + emaildomain)
+            
             if usecolor == 'color':
                print(ac.YELLOW + 'based on email address, using IMAP server: ' + ac.PINKBOLD + imap_server + ac.CLEAR)
             else:
@@ -1718,13 +1754,13 @@ if qtyemail == '2':
                if 'OK' in loginok:
                   break
                else:
-                  print('\nlogin failure. trying next entry.. \n  ')
+                  print('\nlogin failure. trying next entry.. \n ')
                   continue
 
             efcount += 1
 
             logging.info('LOGIN to %s successful' % lnemail)
-            for folder in ('INBOX', 'INBOX.Sent', 'INBOX.Drafts', 'INBOX.Junk', 'INBOX.Outbox', 'INBOX.Archive'):
+            for folder in ('INBOX', 'SENT', 'DRAFTS', 'JUNK', 'OUTBOX', 'ARCHIVEsss'):
                print('\n1689 getting folder contents for %s.. \n' % folder)
                getimap(lnemail, lnpass, res_ip, sslcon, folder)
 
@@ -1744,34 +1780,8 @@ else:
    #VALIDATE EMAIL USING REGEX
    match = re.search(r'^[_a-zA-Z0-9-]+(\.[_a-zA-Z0-9-]+)*@[a-zA-Z0-9-]+(\.[a-zA-Z0-9-]+)*(\.[a-zA-Z]{2,15})$', emailaddr)
 
-   # VALID EMAIL
-   if match:
-      if usecolor == 'color':
-         print('\033[32m\nemail is valid\033[0m\n')
-
-      else:
-         print('\nemail is valid\n')
-      
-      atdomain = re.search("@.*", emailaddr).group()
-      emaildomain = atdomain[1:]
-
-      imap_server = 'imap.' + emaildomain
-      imap_port = 993
-      
-      print('\nchecking for IMAP server at %s...\n' % imap_server)
-      
-      # TRY TO RESOLVE IMAP SERVER
-      res_server, res_ip = resolveimap(imap_server)
-      
-      if len(res_server) < 1 or len(res_ip) < 1:
-         res_server, res_ip = resolveimap(imap_server)
-      
-      imap_server = res_server
-
-      logging.info('trying server %s on port %s' % (imap_server, imap_port))
-   
    # INVALID EMAIL   
-   else:
+   if not match:
       tries = 0
 
       while tries < 5:
@@ -1789,6 +1799,8 @@ else:
          logging.warning('submitted invalid email format %s times' % str(tries))
 
          emailaddr = raw_input('please enter email again --> ')
+         
+         match = re.search(r'^[_a-zA-Z0-9-]+(\.[_a-zA-Z0-9-]+)*@[a-zA-Z0-9-]+(\.[a-zA-Z0-9-]+)*(\.[a-zA-Z]{2,15})$', emailaddr)
 
          # VALID EMAIL
          if match:
@@ -1813,9 +1825,10 @@ else:
       # GOOD EMAIL FORMAT
       elif tries == 100:
          if usecolor == 'color':
-            print('\n\033[32m email is valid \033[0m')
+            print('\n\033[32m email is valid \033[0m\n')
          else:
-            print('email is valid')
+            print('\nemail is valid\n')
+         logging.info('email is valid: %s' % str(emailaddr.strip()))
       
       # OTHER ERROR
       else:
@@ -1825,6 +1838,41 @@ else:
             print('ERROR: unhandled exception. aborting..\n')
          logging.error('unhandled exception. aborting program.')
          sys.exit(1)
+
+   # VALID EMAIL
+   else:
+      if usecolor == 'color':
+         print('\033[32m\nemail is valid\033[0m\n')
+      else:
+         print('\nemail is valid\n')
+      logging.info('email is valid: %s' % str(emailaddr.strip()))
+      
+   atdomain = re.search("@.*", emailaddr).group()
+   emaildomain = atdomain[1:]
+
+   imap_server = 'imap.' + emaildomain
+   imap_port = 993
+         
+   try:
+      socket.getaddrinfo(imap_server,0)
+   except:
+      pass
+      print('\ncould not resolve DNS for %s. ' % imap_server)
+      imap_server = 'mail.' + emaildomain
+      print('trying %s instead...\n' % imap_server)
+      logging.warning('imap.' + emaildomain + ' failed to resolve to an IP address. trying mail.' + emaildomain)
+   
+   print('\nchecking for IMAP server at %s...\n' % imap_server)
+   
+   # TRY TO RESOLVE IMAP SERVER
+   res_server, res_ip = resolveimap(imap_server)
+   
+   if len(res_server) < 1 or len(res_ip) < 1:
+      res_server, res_ip = resolveimap(imap_server)
+   
+   imap_server = res_server
+
+   logging.info('trying server %s on port %s' % (imap_server, imap_port))
 
    # USING PASSWORD LIST
    if usewordlist.lower() == 'y':
@@ -1836,7 +1884,7 @@ else:
 
       encryptsel = raw_input('is the word list encrypted using encryptlist.py? Y/N --> ')      
       while not re.search(r'^[nNyY]$', encryptsel):
-         encryptsel = raw_input('invalid selection. enter Y if word list was encrypted using encryptlist.py or N if not encrypted --> ')
+         encryptsel = raw_input('invalid selection. enter Y if word list was encrypted using encryptlist.py or N if not encrypted --> ')a
          print('')
       
       # IF PASSWORD LIST NOT ENCRYPTED  
@@ -1848,15 +1896,18 @@ else:
             b64sel = raw_input('invalid selection. enter Y if word list is base64-encoded or N if plain text --> ')
             print('')
 
+         # IF PASSWORD LIST NOT BASE64 ENCODED
          if b64sel.lower() == 'n':         
             gotoencsel = raw_input('storing passwords in plaintext is a security risk. \nenter 1 to encrypt the contents of your password list. \nenter 2 to use base-64 encoding. enter 3 to continue with a plaintext password list. --> ')
             while not re.search(r'^[1-3]$', gotoencsel):
                gotoencsel = raw_input('invalid selection. enter 1 to run script to encrypt your password list. \nenter 2 to base64-encode it. or enter 3 to continue with plaintext list --> ')
+            # LAUNCH TO ENCRYPT PASSWORD LIST
             if gotoencsel == '1':
                print("\nlaunching encryptlist.py.. \n")
                import encryptlist
                pwlistfile = encryptlist.encryptlist()
                encryptsel = 'y'
+            # LAUNCH TO BASE64 ENCODE PASSWORD LIST
             elif gotoencsel == '2':
                newpwlistfile = raw_input('please enter a filename for the generated encoded list --> ')
                while not re.match(r'^[\w\-. ]+$', newpwlistfile):
@@ -2018,7 +2069,7 @@ else:
 
             #getimap(emailaddr, emailpass.strip(), imap_server, sslcon)
             
-            for folder in 'INBOX', 'INBOX.Sent', 'INBOX.Archive', 'INBOX.Drafts', 'INBOX.Junk', 'INBOX.Outbox', 'INBOX.Trash':
+            for folder in 'INBOX', 'SENT', 'ARCHIVE', 'DRAFTS', 'JUNK', 'OUTBOX', 'TRASH':
                print('\n1977 getting folder: %s \n' % folder)
                getimap(emailaddr, emailpass.strip(), imap_server, sslcon, folder)
             #homedir = os.path.expanduser("~")
@@ -2080,8 +2131,8 @@ else:
          
          
             
-         for folder in 'INBOX', 'INBOX.Sent', 'INBOX.Archive', 'INBOX.Drafts', 'INBOX.Junk', 'INBOX.Outbox', 'INBOX.Trash':
-            print('\n2038 getting folder: %s \n' % folder)
+         for folder in 'INBOX', 'SENT', 'ARCHIVE', 'DRAFTS', 'JUNK', 'OUTBOX', 'TRASH':
+            print('\ngetting folder: %s \n' % folder)
             getimap(emailaddr, emailpass.strip(), imap_server, sslcon, folder)
          
          #homedir = os.path.expanduser("~")
