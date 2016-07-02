@@ -732,7 +732,7 @@ def decode_email(msgbody):
                         raw_input('ecdata')
                      
 
-                        if "multipart" in ac.get_content_type():                                      
+                        if "multipart" or "application" in ac.get_content_type():                                      
                            if not os.path.isfile(att_path):
                               attfile = open(att_path, 'wb+')
                               attfile.write(acrypt)
@@ -753,32 +753,32 @@ def decode_email(msgbody):
                      break   
                
          else:
-            if not os.path.isfile(att_path):
-               for crypt in cryptpayload:
-                  try:
-                     cryptdata = crypt.get_payload(decode=True)                                  
-                     cryptname = crypt.get_filename()
-               
-                     att_path = os.path.join(att_dir, cryptname)
+            print('\n***DOWNLOADING ENCRYPTED ATTACHMENTS*** \n')
+            for crypt in cryptpayload:
+               cryptdata = crypt.get_payload(decode=True)                                  
+               cryptname = crypt.get_filename()
+            
+               att_path = os.path.join(att_dir, cryptname)               
+               try:
+                  if not os.path.exists(att_path):
                      cryptfile = open(att_path, 'wb+')
                      cryptfile.write(cryptdata)
                      cryptfile.close()
+                     print(cryptname)
                      attfile = cryptfile
-                     logging.info('saved attachment to file: %s' % att_path)
+                     logging.info('saved attachment: %s' % cryptname)
+                  else:
+                     cryptfile = open(att_path, 'rb+')
+                     attfile = cryptfile
                      if usecolor == 'color':
-                        print('\n\033[36msaved attachment to file: \033[32m%s \033[0m\n' % att_path)
+                        print('\n\033[35m%s \033[0malready exists, skipping..\n' % att_path)
                      else:
-                        print('\nsaved attachment to file: %s \n' % att_path)
-                  except:
-                     pass
-                     break
-                  
-                  
-            else:
-               if usecolor == 'color':
-                  print('\n\033[35m%s \033[0malready exists, skipping..\n' % att_path)
-               else:
-                  print('\n%s already exists, skipping..\n' % att_path)
+                        print('\n%s already exists, skipping..\n' % att_path)
+                     logging.info('%s exists, skipped..' % cryptname)
+            
+               except e:
+                  pass
+                  print('\nan error occurred: %s \n' % str(e))
             
             decoded = attfile
 
@@ -793,6 +793,9 @@ def decode_email(msgbody):
 
          else:
             decoded = html.strip()
+      
+      else:
+         decoded = attfile
 
    return decoded
 # END OF FUNCTION decode_email()
