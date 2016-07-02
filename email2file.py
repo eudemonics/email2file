@@ -665,7 +665,7 @@ def decode_email(msgbody):
                else:
                   html = unicode(att.get_payload(decode=True), str(charset), "ignore").encode('utf8', 'replace').strip()
                   
-         if 'use_gpg' not in locals() and part.get_content_type() == 'multipart/encrypted' or 'application' in part.get_content_type():
+         if 'use_gpg' not in locals() and 'encrypted' or 'application' in part.get_content_type():
             use_gpg = 0
             if use_gpg == 0:
                if os.path.exists(gpgdir):
@@ -687,7 +687,7 @@ def decode_email(msgbody):
                         
          if use_gpg == 1:
             #crypt = unicode(part.get_payload(decode=True), str(charset), "ignore").encode('utf8', 'replace').strip()
-            cryptpayload = part.get_payload(1)
+            cryptpayload = part.get_payload()
             
             print('\n***DOWNLOADING ENCRYPTED ATTACHMENTS*** \n')
             for crypt in cryptpayload:
@@ -753,7 +753,7 @@ def decode_email(msgbody):
                      break   
                
          else:
-            cryptpayload = part.get_payload(1)
+            cryptpayload = part.get_payload()
             
             print('\n***DOWNLOADING ENCRYPTED ATTACHMENTS*** \n')
             for crypt in cryptpayload:
@@ -782,7 +782,7 @@ def decode_email(msgbody):
                   pass
                   print('\nan error occurred: %s \n' % str(e))
             
-            decoded = attfile
+            decoded = part.get_payload(1)
 
       if att is False:
          decoded = msg
