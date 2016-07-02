@@ -753,6 +753,8 @@ def decode_email(msgbody):
                      break   
                
          else:
+            cryptpayload = part.get_payload(1)
+            
             print('\n***DOWNLOADING ENCRYPTED ATTACHMENTS*** \n')
             for crypt in cryptpayload:
                cryptdata = crypt.get_payload(decode=True)                                  
