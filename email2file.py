@@ -769,9 +769,9 @@ def decode_email(msgbody):
                         print('\n\033[36msaved attachment to file: \033[32m%s \033[0m\n' % att_path)
                      else:
                         print('\nsaved attachment to file: %s \n' % att_path)
-                     except:
-                        pass
-                        break
+                  except:
+                     pass
+                     break
                   
                   
             else:
