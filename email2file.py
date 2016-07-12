@@ -518,13 +518,17 @@ def checkformat(emailaddr):
 
 # FUNCTION TO PARSE MULTIPART EMAIL PAYLOAD
 def decode_email(msg):
+ 
+   text = ""
+   att = False
+   html = None
 
    if type(msg) is str:
       parsed = msg
       print('\nDEBUG: returning msg as parsed\n')
       return parsed # nothing more to parse
    
-   elif msg.get_payload() is None or type(msg) is NoneType:
+   elif msg.get_payload() is None:
       print('\nDEBUG: returning msg as NoneType\n')
       return msg
    
