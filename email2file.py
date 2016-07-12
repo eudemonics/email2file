@@ -1,8 +1,8 @@
 #!/usr/bin/env python
 #
-##### EMAIL2FILE v2.3!
+##### EMAIL2FILE v2.4!
 ##### AUTHOR: vvn < root @ nobody . ninja >
-##### VERSION RELEASE: June 30, 2016
+##### VERSION RELEASE: July 11, 2016
 ##### GPG public key: F6679EC4
 #####
 ##### SAVE EMAIL LISTS AS PLAIN TEXT format in script directory with one address per line.
@@ -517,7 +517,7 @@ def checkformat(emailaddr):
 # END OF FUNCTION checkformat()
 
 # FUNCTION TO PARSE MULTIPART EMAIL PAYLOAD
-def parse_multi(msg):
+def decode_email(msg):
 
    if type(msg) is str:
       parsed = msg
@@ -647,7 +647,7 @@ def parse_multi(msg):
                         pass
                         print('\nan error occurred \n')
                   else:
-                     attachment = parse_multi(bsub)
+                     attachment = decode_email(bsub)
                      
          # PGP encrypted message or attachment      
          elif part.get_content_type() == 'application/pgp-encrypted' or part.get_content_type() == 'application/octet-stream':
@@ -733,7 +733,7 @@ def parse_multi(msg):
                      attachment = acdata 
                      
                      if "multipart" or "alternative" in ac.get_content_type():
-                        attachment = parse_multi(ac)
+                        attachment = decode_email(ac)
                   
                elif 'pgp-encrypted' in part.get_content_type():
                   cryptmsg = part.get_payload(decode=True)
@@ -771,33 +771,7 @@ def parse_multi(msg):
       return decoded
                   
          
-# END FUNCTION parse_multi(msg)
-   
-
-# FUNCTION TO DECODE EMAIL BODY AND ATTACHMENTS
-def decode_email(msgbody):
-
-   msg = email.message_from_string(msgbody)
-      
-   decoded = msg
-   text = ""
-   att = False
-   html = None
-   
-   rootdir = savedir
-   
-   if not os.path.exists(rootdir):
-      os.makedirs(rootdir, 0755)
-
-   if not msg.is_multipart():
-      decoded = msg
-   
-   else:
-      
-      decoded = parse_multi(msg)
-
-   return decoded
-# END OF FUNCTION decode_email()
+# END FUNCTION decode_email(msg)
 
 # FUNCTION TO LOG ONTO IMAP SERVER AND GET EMAIL
 def getimap(emailaddr, emailpass, imap_server, sslcon):
