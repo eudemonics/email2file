@@ -532,7 +532,7 @@ def decode_email(msg):
       msgfrom = msgfrom.replace('<', ' ')
       msgfrom = msgfrom.replace('>', '')
       msgto = msg['Envelope-to']
-      if m['Subject']:
+      if msg['Subject']:
          msgsubject = msg['Subject'].replace('/', '-')
       else:
          msgsubject = 'No Subject'
@@ -624,27 +624,50 @@ def decode_email(msg):
                   bnext = bsub.get_payload(decode=True)
                   attachment = bnext
                   bname = bsub.get_filename()
+                  
                   if bname is None:
                      text = bnext
                      btype = bsub.get_content_type()
                      print('\nbtype:\n%s \n' % btype)
                      print('\ntext:\n%s \n' % text)
-                     bname = msgfrom + '-' msgsubject + '-' + msgdate + '.txt'
+                     bname = msgfrom + '-' + msgsubject + '-' + msgdate + '.txt'
                   else:
-                     bname = msgfrom + '-' msgdate + '-' + bname
-                  if bnext is not None:
+                     bname = msgfrom + '-' + msgdate + '-' + bname
+                  
+                  bfilename = os.path.join(att_dir, bname)
+                     
+                  if bnext is None: # possibly more attachments within
                      try:
-                        bfilename = os.path.join(att_dir, bname)
+                        attachment = decode_email(bsub)
+                        bdata = open(bfilename, 'wb+')
+                        bdata.write(attachment)
+                        bdata.close()
+                        print('\nsaved attachment: %s \n' % bname)
+                        logging.info('saved attachment: %s' % bname)
+                     except:
+                        pass
+                        try:
+                           attachment = bsub
+                           bdata = open(bfilename, 'wb+')
+                           bdata.write(attachment)
+                           bdata.close()
+                           print('\nsaved attachment: %s \n' % bname)
+                           logging.info('saved attachment: %s' % bname)
+                        except e:
+                           print('\nan error has occurred: %s \n' % str(e))
+                           logging.error('an error has occurred: %s' % str(e))
+                  else:
+                     try:
                         bdata = open(bfilename, 'wb+')
                         bdata.write(bnext)
                         bdata.close()
                         print('\nsaved attachment: %s \n' % bname)
-                        attachment = bdata
-                     except:
+                        logging.info('saved attachment: %s' % bname)
+                        attachment = bnext
+                     except e:
                         pass
-                        print('\nan error occurred \n')
-                  else:
-                     attachment = decode_email(bsub)
+                        print('\nan error has occurred: %s \n' % str(e))
+                        logging.error('an error has occurred: %s' % str(e))
 
             else:
                text = part.get_payload(decode=True)
@@ -707,8 +730,10 @@ def decode_email(msg):
                         check_gpg = raw_input('invalid entry. enter Y or N to decrypt messages --> ')
                      if check_gpg.lower() == 'y':
                         use_gpg = 1
+                        logging.info('GPG decryption enabled')
                      else:
                         use_gpg = 0
+                        logging.info('GPG decryption disabled')
                
             if use_gpg == 1:
                if 'application/octet-stream' in part.get_content_type():
@@ -722,9 +747,11 @@ def decode_email(msg):
                      decfilealt = acname[:-4] + '-decalt' + decext
                      decpath = os.path.join(att_dir, decfile)
                      decpathalt = os.path.join(att_dir, decfilealt)
+                     print(decfile)
                      acdata = ac.get_payload(decode=True)
                      ec = gpg.decrypt(base64.decodestring(ac), always_trust=True, output=decpath)
                      ecdata = gpg.decrypt(base64.decodestring(acdata), always_trust=True, output=decpathalt)
+                     logging.info('saved decrypted GPG data as: %s' % decfile)
                      print(ec)
                      print('\n')
                      raw_input('729 ec - press ENTER')
