@@ -691,96 +691,121 @@ def decode_email(msgbody):
             
             print('\n***DOWNLOADING ENCRYPTED ATTACHMENTS*** \n')
             for crypt in cryptpayload:
-               cryptdata = crypt.get_payload(decode=True)                                  
-               cryptname = crypt.get_filename()
-               
-               att_path = os.path.join(att_dir, cryptname)               
-               try:
-                  if not os.path.exists(att_path):
-                     cryptfile = open(att_path, 'wb+')
-                     cryptfile.write(cryptdata)
-                     cryptfile.close()
-                     print(cryptname)
-                     attfile = cryptfile
-                     logging.info('saved attachment: %s' % cryptname)
+               ctype = type(crypt)
+               if type(crypt) is str:
+                  text = crypt
+               else:
+                  enc = crypt['Content-Transfer-Encoding']
+                  if crypt.get_content_type() == 'text/plain':
+                     text = crypt
+                     if 'base64' in enc:
+                        text = base64.decodestring(text)
+                  elif crypt.get_content_type() == 'text/html':
+                     html = unicode(crypt.get_payload(decode=True), str(charset), "ignore").encode('utf8', 'replace').strip()
                   else:
-                     cryptfile = open(att_path, 'rb+')
-                     attfile = cryptfile
-                     print('\n%s exists, skipping... \n' % cryptname)
-                     logging.info('%s exists, skipped..' % cryptname)
+                     cryptdata = crypt.get_payload()                                  
+                     cryptname = crypt.get_filename()
                
-               except e:
-                  pass
-                  print('\nan error occurred: %s \n' % str(e))
+                     att_path = os.path.join(att_dir, cryptname)               
+                     try:
+                        if not os.path.exists(att_path):
+                           cryptfile = open(att_path, 'wb+')
+                           cryptfile.write(cryptdata)
+                           cryptfile.close()
+                           print(cryptname)
+                           attfile = cryptfile
+                           logging.info('saved attachment: %s' % cryptname)
+                        else:
+                           cryptfile = open(att_path, 'rb+')
+                           attfile = cryptfile
+                           print('\n%s exists, skipping... \n' % cryptname)
+                           logging.info('%s exists, skipped..' % cryptname)
                
-               if 'application' in crypt.get_content_type():
-                  try:
-                     acrypt = crypt.get_payload(1)
-                     gpg = gnupg.GPG(gnupghome=gpgdir, use_agent=True)
-                     for ac in acrypt:
-                        acname = ac.get_filename()
-                        decfile = 'dec-' + acname
-                        decfilealt = 'decalt-' + acname
-                        decpath = os.path.join(att_dir, decfile)
-                        decpathalt = os.path.join(att_dir, decfilealt)
-                        acdata = ac.get_payload(decode=True)
-                        ec = gpg.decrypt(base64.decodestring(ac), always_trust=True, output=decpath)
-                        ecdata = gpg.decrypt(base64.decodestring(acdata), always_trust=True, output=decpathalt)
-                        print(ec)
-                        raw_input('ec')
-                        print(ecdata)
-                        raw_input('ecdata')
+                     except e:
+                        pass
+                        print('\nan error occurred: %s \n' % str(e))
+               
+                     if 'application' in crypt.get_content_type():
+                        try:
+                           acrypt = crypt.get_payload(1)
+                           gpg = gnupg.GPG(gnupghome=gpgdir, use_agent=True)
+                           for ac in acrypt:
+                              acname = ac.get_filename()
+                              decfile = 'dec-' + acname
+                              decfilealt = 'decalt-' + acname
+                              decpath = os.path.join(att_dir, decfile)
+                              decpathalt = os.path.join(att_dir, decfilealt)
+                              acdata = ac.get_payload(decode=True)
+                              ec = gpg.decrypt(base64.decodestring(ac), always_trust=True, output=decpath)
+                              ecdata = gpg.decrypt(base64.decodestring(acdata), always_trust=True, output=decpathalt)
+                              print(ec)
+                              raw_input('ec')
+                              print(ecdata)
+                              raw_input('ecdata')
                      
 
-                        if "multipart" or "application" in ac.get_content_type():                                      
-                           if not os.path.isfile(att_path):
-                              attfile = open(att_path, 'wb+')
-                              attfile.write(acrypt)
-                              attfile.close()
-                              logging.info('saved encrypted file: %s' % att_path)
-                              if usecolor == 'color':
-                                 print('\n\033[36msaved encrypted file: \033[32m%s \033[0m\n' % att_path)
-                              else:
-                                 print('\nsaved encrypted file: %s \n' % att_path)
-                           else:
-                              if usecolor == 'color':
-                                 print('\n\033[35m%s \033[0malready exists, skipping..\n' % att_path)
-                              else:
-                                 print('\n%s already exists, skipping..\n' % att_path)
+                              if "multipart" or "application" in ac.get_content_type():                                      
+                                 if not os.path.isfile(att_path):
+                                    attfile = open(att_path, 'wb+')
+                                    attfile.write(acrypt)
+                                    attfile.close()
+                                    logging.info('saved encrypted file: %s' % att_path)
+                                    if usecolor == 'color':
+                                       print('\n\033[36msaved encrypted file: \033[32m%s \033[0m\n' % att_path)
+                                    else:
+                                       print('\nsaved encrypted file: %s \n' % att_path)
+                                 else:
+                                    if usecolor == 'color':
+                                       print('\n\033[35m%s \033[0malready exists, skipping..\n' % att_path)
+                                    else:
+                                       print('\n%s already exists, skipping..\n' % att_path)
                
-                  except:
-                     pass
-                     break   
+                        except:
+                           pass
+                           break   
                
          else:
             cryptpayload = part.get_payload()
             
             print('\n***DOWNLOADING ENCRYPTED ATTACHMENTS*** \n')
             for crypt in cryptpayload:
-               cryptdata = crypt.get_payload(decode=True)                                  
-               cryptname = crypt.get_filename()
-            
-               att_path = os.path.join(att_dir, cryptname)               
-               try:
-                  if not os.path.exists(att_path):
-                     cryptfile = open(att_path, 'wb+')
-                     cryptfile.write(cryptdata)
-                     cryptfile.close()
-                     print(cryptname)
-                     attfile = cryptfile
-                     logging.info('saved attachment: %s' % cryptname)
+               ctype = type(crypt)
+               if type(crypt) is str:
+                  text = crypt
+               else:
+                  enc = crypt['Content-Transfer-Encoding']
+                  if crypt.get_content_type() == 'text/plain':
+                     text = crypt
+                     if 'base64' in enc:
+                        text = base64.decodestring(text)
+                  elif crypt.get_content_type() == 'text/html':
+                     html = unicode(crypt.get_payload(decode=True), str(charset), "ignore").encode('utf8', 'replace').strip()
                   else:
-                     cryptfile = open(att_path, 'rb+')
-                     attfile = cryptfile
-                     if usecolor == 'color':
-                        print('\n\033[35m%s \033[0malready exists, skipping..\n' % att_path)
-                     else:
-                        print('\n%s already exists, skipping..\n' % att_path)
-                     logging.info('%s exists, skipped..' % cryptname)
+                     for crypt in cryptpayload:
+                        cryptdata = crypt.get_payload(decode=True)                                  
+                        cryptname = crypt.get_filename()
             
-               except e:
-                  pass
-                  print('\nan error occurred: %s \n' % str(e))
+                        att_path = os.path.join(att_dir, cryptname)               
+                        try:
+                           if not os.path.exists(att_path):
+                              cryptfile = open(att_path, 'wb+')
+                              cryptfile.write(cryptdata)
+                              cryptfile.close()
+                              print(cryptname)
+                              attfile = cryptfile
+                              logging.info('saved attachment: %s' % cryptname)
+                           else:
+                              cryptfile = open(att_path, 'rb+')
+                              attfile = cryptfile
+                              if usecolor == 'color':
+                                 print('\n\033[35m%s \033[0malready exists, skipping..\n' % att_path)
+                              else:
+                                 print('\n%s already exists, skipping..\n' % att_path)
+                              logging.info('%s exists, skipped..' % cryptname)
+            
+                        except e:
+                           pass
+                           print('\nan error occurred: %s \n' % str(e))
             
             decoded = part.get_payload(1)
 
