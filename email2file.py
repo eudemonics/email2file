@@ -516,30 +516,44 @@ def checkformat(emailaddr):
    return emailformat
 # END OF FUNCTION checkformat()
 
-# FUNCTION TO DECODE EMAIL BODY AND ATTACHMENTS
-def decode_email(msgbody):
+# FUNCTION TO PARSE MULTIPART EMAIL PAYLOAD
+def parse_multi(msg):
 
-   msg = email.message_from_string(msgbody)
-      
-   decoded = msg
-   text = ""
-   att = False
-   html = None
+   if type(msg) is str:
+      parsed = msg
+      return parsed # nothing more to parse
    
-   rootdir = savedir
-   
-   if not os.path.exists(rootdir):
-      os.makedirs(rootdir, 0755)
-
-   if not msg.is_multipart():
-      decoded = msg
-      
    else:
-      
-      decoded = msg.get_payload()
+   
+      decoded = msg.get_payload(decode=True)
          
       mdate = msg['Date']
-      mdate = str(mdate)[:10]
+      msgfrom = msg['From'].replace('/', '-')
+      msgfrom = msgfrom.replace('<', ' ')
+      msgfrom = msgfrom.replace('>', '')
+      msgto = msg['Envelope-to']
+      if m['Subject']:
+         msgsubject = msg['Subject'].replace('/', '-')
+      else:
+         msgsubject = 'No Subject'
+      msgdate = mdate[5:][:11]
+      rootdir = savedir
+      atdomain = re.search("@.*", msgto).group()
+      emaildomain = atdomain[1:]
+      j = len(msgto) - len(atdomain)
+      user_save = emailaddr[:j]
+
+      subdir =  user_save + "_" + emaildomain
+      save_path = os.path.join(rootdir, subdir)
+
+      if not os.path.exists(save_path):
+         os.makedirs(save_path)
+      
+      att_dir = os.path.join(save_path, 'attachments')
+      if not os.path.exists(att_dir):
+         os.makedirs(att_dir)
+      
+      att = False
       
       for part in decoded:
          
@@ -550,7 +564,7 @@ def decode_email(msgbody):
          charset = part.get_content_charset()
          print("\033[31mContent-Type: %s \nCharset: %s \n\033[0m" % (contype, charset))
          
-         if charset is None:
+         if charset is None: # probably a file attachment then
             text = part.get_payload(decode=True)
             continue
          
@@ -568,261 +582,219 @@ def decode_email(msgbody):
 
          elif part.get('Content-Disposition') is None:
             continue
-
+         
+         # p7s signature
+         elif part.get_content_type() == 'application/pkcs7-signature':
+            att = True
+            sigdata = part.get_payload(decode=True)
+            signame = 'sig.p7s'
+            if part.get_filename() is None:
+               signame = msgfrom + '-' msgsubject + '-' + msgdate + '.p7s'
+            else:
+               signame = msgfrom + '-' msgdate + '-' + part.get_filename()
+            att_path = os.path.join(att_dir, signame)
+            sigfile = open(att_path, 'wb+')
+            sigfile.write(sigdata)
+            sigfile.close()
+            logging.info('saved signature file: %s' % signame)
+            print('saved signature file to disk: %s' % signame)
+            
+         
          # message contains attachments
          elif "multipart" or "alternative" in part.get_content_type():
+            att = True
             # text of message
             a = part.get_payload(0)
             # attachments
             b = part.get_payload(1)
             
+            # plain text message
             if a.get_content_type() == 'text/plain':
                text = a
                if a['Content-Transfer-Encoding'] == 'base64':
                   text = a.get_payload()
                   text = base64.decodestring(text)
-                  
+            # html or rich-text format
             elif a.get_content_type() == 'text/html':
                html = unicode(a.get_payload(decode=True), str(charset), "ignore").encode('utf8', 'replace').strip()
-            
             else:
                text = part.get_payload(decode=True)
-               continue
-            
-            if 'multipart' or 'application' in b.get_content_type():
+               continue 
+               
+            # attachments
+            elif 'multipart' or 'application' in b.get_content_type():
                for bsub in b.get_payload():
                   bnext = bsub.get_payload(decode=True)
+                  attachment = bnext
                   bname = bsub.get_filename()
                   if bname is None:
-                     btext = bnext
+                     text = bnext
                      btype = bsub.get_content_type()
-                     print(btype)
-                     print(btext)
+                     print('\nbtype:\n%s \n' % btype)
+                     print('\ntext:\n%s \n' % text)
+                     bname = msgfrom + '-' msgsubject + '-' + msgdate + '.txt'
                   else:
+                     bname = msgfrom + '-' msgdate + '-' + bname
+                  if bnext is not None:
                      try:
-                        cwd = os.getcwd()
-                        bfilename = os.path.join(cwd, bname)
-                        bdata = open(bfilename, 'w+')
-                        bdata.write(str(bnext))
+                        bfilename = os.path.join(att_dir, bname)
+                        bdata = open(bfilename, 'wb+')
+                        bdata.write(bnext)
                         bdata.close()
                         print('\nsaved attachment: %s \n' % bname)
+                        attachment = bdata
                      except:
                         pass
                         print('\nan error occurred \n')
-      
-         else:
-         
-            for next in part.get_payload():
-               parttype = next.get_content_type()
-               partname = next.get_filename()
-               if 'text/plain' in parttype:
-                  text = next
-                  if enc == "base64":
-                     text = base64.decodestring(text)
-               elif 'text/html' in parttype:
-                  html = unicode(next.get_payload(decode=True), str(charset), "ignore").encode('utf8', 'replace').strip()
-               elif 'multipart' in parttype:
-                  subnext = next.get_payload()
-                  submsg = subnext[0]
-                  subatt = subnext[1]
-                  
-                  for att in subatt.get_payload():
-                     attname = att.get_filename()
-                     att_path = os.path.join(att_dir, attname)
-                     attdata = att.get_payload(decode=True)
-                     saved = open(att_path, 'wb+')
-                     saved.write(attdata)
-                     if usecolor == 'color':
-                        print('\n\033[36msaved file attachment: \033[32m%s \033[0m\n' % attname)
-                     else:
-                        print('\nsaved file attachment: %s \n' % attname)
-                     logging.info('saved file attachment: %s' % attname)
-               
-                     print('\nsaving attachment to file: %s \n' % attname)
-                     saved.close()
-                     attfile = saved
-                  
-            enc = part['Content-Transfer-Encoding']
-                     
-            attachment = part.get_payload(1)
-            for att in attachment:
-               fname = att.get_filename()
-               filename = str(mdate) + '-' + str(fname)
-               fpath = os.path.join(att_dir, filename)
-               fdata = att.get_payload(decode=True)
-               if not os.path.exists(fpath):               
-                  attach = open(fpath, 'wb+')
-                  attach.write(fdata)
-                  print('\ndownloaded attachment: %s \n' % filename)
-                  logging.info('downloaded attachment: %s' % filename)
-                  attach.close()
-                  attpath = attach
-                  
-               if att.get_content_type() == "text/plain":
-                  text = att.get_payload()
-                  if enc == "base64":
-                     text = base64.decodestring(text)
-               else:
-                  html = unicode(att.get_payload(decode=True), str(charset), "ignore").encode('utf8', 'replace').strip()
-                  
-         if 'use_gpg' not in locals() and 'encrypted' or 'application' in part.get_content_type():
-            use_gpg = 0
-            if use_gpg == 0:
-               if os.path.exists(gpgdir):
-                  check_gpg = raw_input('would you like to decrypt messages encrypted with your GnuPG keyring? Y/N --> ')
-                  while not re.match(r'^[yYnN]$', check_gpg):
-                     check_gpg = raw_input('invalid entry. enter Y or N to decrypt messages --> ')
-                  if check_gpg.lower() == 'y':
-                     use_gpg = 1
                   else:
-                     use_gpg = 0
-         
-         else:
-            use_gpg = 0
-         
-         if filename:
-
+                     attachment = parse_multi(bsub)
+                     
+         # PGP encrypted message or attachment      
+         elif part.get_content_type() == 'application/pgp-encrypted' or part.get_content_type() == 'application/octet-stream':
             att = True
-            attfile = part.get_payload(decode=True)
-                        
-         if use_gpg == 1:
-            #crypt = unicode(part.get_payload(decode=True), str(charset), "ignore").encode('utf8', 'replace').strip()
-            cryptpayload = part.get_payload()
-            
-            print('\n***DOWNLOADING ENCRYPTED ATTACHMENTS*** \n')
-            for crypt in cryptpayload:
-               ctype = type(crypt)
+            text = part.get_payload(decode=True)
+            for crypt in part.get_payload():
                if type(crypt) is str:
                   text = crypt
+                  att = False
+                  continue
                else:
                   enc = crypt['Content-Transfer-Encoding']
                   if crypt.get_content_type() == 'text/plain':
-                     text = crypt
-                     if 'base64' in enc:
+                     text = crypt.get_payload()
+                     if 'base6s4' in enc:
                         text = base64.decodestring(text)
+                        att = False
+                        continue
                   elif crypt.get_content_type() == 'text/html':
                      html = unicode(crypt.get_payload(decode=True), str(charset), "ignore").encode('utf8', 'replace').strip()
                   else:
-                     cryptdata = crypt.get_payload()                                  
+                     att = True
+                     cryptdata = crypt.get_payload(decode=True) 
+                     attachment = cryptdata
                      cryptname = crypt.get_filename()
-               
-                     att_path = os.path.join(att_dir, cryptname)               
+                     if cryptname is None:
+                        cryptname = msgfrom + ' - ' + msgsubject + ' - ' + '.gpg'
+                     else:
+                        cryptname = msgfrom + ' - ' + msgsubject + ' - ' + cryptname
+                     att_path = os.path.join(att_dir, cryptname)
                      try:
                         if not os.path.exists(att_path):
                            cryptfile = open(att_path, 'wb+')
                            cryptfile.write(cryptdata)
                            cryptfile.close()
-                           print(cryptname)
                            attfile = cryptfile
+                           print('\n**********\nsaved attachment: %s \n' % cryptname)
                            logging.info('saved attachment: %s' % cryptname)
                         else:
                            cryptfile = open(att_path, 'rb+')
-                           attfile = cryptfile
+                           cryptdata = cryptfile.read()
                            print('\n%s exists, skipping... \n' % cryptname)
                            logging.info('%s exists, skipped..' % cryptname)
-               
+      
                      except e:
                         pass
-                        print('\nan error occurred: %s \n' % str(e))
+                        print('\nan error has occurred: %s \n' % str(e))
+                        logging.error('an error has occurred: %s' % str(e))
+                        
+            if 'use_gpg' not in locals():
+               use_gpg = 0
+               if use_gpg == 0:
+                  if os.path.exists(gpgdir):
+                     check_gpg = raw_input('would you like to decrypt messages encrypted with your GnuPG keyring? Y/N --> ')
+                     while not re.match(r'^[yYnN]$', check_gpg):
+                        check_gpg = raw_input('invalid entry. enter Y or N to decrypt messages --> ')
+                     if check_gpg.lower() == 'y':
+                        use_gpg = 1
+                     else:
+                        use_gpg = 0
                
-                     if 'application' in crypt.get_content_type():
-                        try:
-                           acrypt = crypt.get_payload(1)
-                           gpg = gnupg.GPG(gnupghome=gpgdir, use_agent=True)
-                           for ac in acrypt:
-                              acname = ac.get_filename()
-                              decfile = 'dec-' + acname
-                              decfilealt = 'decalt-' + acname
-                              decpath = os.path.join(att_dir, decfile)
-                              decpathalt = os.path.join(att_dir, decfilealt)
-                              acdata = ac.get_payload(decode=True)
-                              ec = gpg.decrypt(base64.decodestring(ac), always_trust=True, output=decpath)
-                              ecdata = gpg.decrypt(base64.decodestring(acdata), always_trust=True, output=decpathalt)
-                              print(ec)
-                              raw_input('ec')
-                              print(ecdata)
-                              raw_input('ecdata')
+            if use_gpg == 1:
+               if 'application/octet-stream' in part.get_content_type():
+                  crypt = part.get_payload(1)
+                  print('\n***DOWNLOADING ENCRYPTED ATTACHMENTS*** \n')
+                  gpg = gnupg.GPG(gnupghome=gpgdir, use_agent=True)
+                  for ac in crypt:
+                     acname = ac.get_filename()
+                     decext = acname[-4:]
+                     decfile = acname[:-4] + '-dec' + decext
+                     decfilealt = acname[:-4] + '-decalt' + decext
+                     decpath = os.path.join(att_dir, decfile)
+                     decpathalt = os.path.join(att_dir, decfilealt)
+                     acdata = ac.get_payload(decode=True)
+                     ec = gpg.decrypt(base64.decodestring(ac), always_trust=True, output=decpath)
+                     ecdata = gpg.decrypt(base64.decodestring(acdata), always_trust=True, output=decpathalt)
+                     print(ec)
+                     print('\n')
+                     raw_input('729 ec - press ENTER')
+                     print(ecdata)
+                     print('\n')
+                     raw_input('732 ecdata - press ENTER')
+                     attachment = acdata 
                      
-
-                              if "multipart" or "application" in ac.get_content_type():                                      
-                                 if not os.path.isfile(att_path):
-                                    attfile = open(att_path, 'wb+')
-                                    attfile.write(acrypt)
-                                    attfile.close()
-                                    logging.info('saved encrypted file: %s' % att_path)
-                                    if usecolor == 'color':
-                                       print('\n\033[36msaved encrypted file: \033[32m%s \033[0m\n' % att_path)
-                                    else:
-                                       print('\nsaved encrypted file: %s \n' % att_path)
-                                 else:
-                                    if usecolor == 'color':
-                                       print('\n\033[35m%s \033[0malready exists, skipping..\n' % att_path)
-                                    else:
-                                       print('\n%s already exists, skipping..\n' % att_path)
-               
-                        except:
-                           pass
-                           break   
-               
-         else:
-            cryptpayload = part.get_payload()
-            
-            print('\n***DOWNLOADING ENCRYPTED ATTACHMENTS*** \n')
-            for crypt in cryptpayload:
-               ctype = type(crypt)
-               if type(crypt) is str:
-                  text = crypt
-               else:
-                  enc = crypt['Content-Transfer-Encoding']
-                  if crypt.get_content_type() == 'text/plain':
-                     text = crypt
-                     if 'base64' in enc:
-                        text = base64.decodestring(text)
-                  elif crypt.get_content_type() == 'text/html':
-                     html = unicode(crypt.get_payload(decode=True), str(charset), "ignore").encode('utf8', 'replace').strip()
+                     if "multipart" or "alternative" in ac.get_content_type():
+                        attachment = parse_multi(ac)
+                  
+               elif 'pgp-encrypted' in part.get_content_type():
+                  cryptmsg = part.get_payload(decode=True)
+                  gpg = gnupg.GPG(gnupghome=gpgdir, use_agent=True)
+                  decfile = part.get_filename()
+                  if decfile is None:
+                     decfile = mdate + '-' + msgfrom + '-' + msgsubject + '-dec.txt'
                   else:
-                     for crypt in cryptpayload:
-                        cryptdata = crypt.get_payload(decode=True)                                  
-                        cryptname = crypt.get_filename()
-            
-                        att_path = os.path.join(att_dir, cryptname)               
-                        try:
-                           if not os.path.exists(att_path):
-                              cryptfile = open(att_path, 'wb+')
-                              cryptfile.write(cryptdata)
-                              cryptfile.close()
-                              print(cryptname)
-                              attfile = cryptfile
-                              logging.info('saved attachment: %s' % cryptname)
-                           else:
-                              cryptfile = open(att_path, 'rb+')
-                              attfile = cryptfile
-                              if usecolor == 'color':
-                                 print('\n\033[35m%s \033[0malready exists, skipping..\n' % att_path)
-                              else:
-                                 print('\n%s already exists, skipping..\n' % att_path)
-                              logging.info('%s exists, skipped..' % cryptname)
-            
-                        except e:
-                           pass
-                           print('\nan error occurred: %s \n' % str(e))
-            
-            decoded = part.get_payload(1)
-
+                     dname = part.get_filename()
+                     decext = dname[-4:]
+                     decfile = dname[:-4] + '-dec' + decext
+                     decpath = os.path.join(att_dir, decfile)
+                     decrypted = gpg.decrypt(base64.decodestring(cryptmsg), always_trust=True, output=decpath)
+                  print(decrypted)
+                  raw_input('press ENTER to continue')
+                  att = True
+                  attachment = cryptmsg
+               
+               else:              
+                  continue
+      
       if att is False:
          decoded = msg
 
          if html is None and text is not None:
             decoded = text.strip()
-
          elif html is None and text is None:
             decoded = msg
-
          else:
             decoded = html.strip()
       
       else:
-         decoded = attfile
+         decoded = attachment
+   
+      return decoded
+                  
+         
+# END FUNCTION parse_multi(msg)
+   
+
+# FUNCTION TO DECODE EMAIL BODY AND ATTACHMENTS
+def decode_email(msgbody):
+
+   msg = email.message_from_string(msgbody)
+      
+   decoded = msg
+   text = ""
+   att = False
+   html = None
+   
+   rootdir = savedir
+   
+   if not os.path.exists(rootdir):
+      os.makedirs(rootdir, 0755)
+
+   if not msg.is_multipart():
+      decoded = msg
+   
+   else:
+      
+      decoded = parse_multi(msg)
 
    return decoded
 # END OF FUNCTION decode_email()
@@ -992,7 +964,227 @@ def getimap(emailaddr, emailpass, imap_server, sslcon):
                msgfrom = msgfrom.encode('utf-8')
                msgfrom = msgfrom[:35].strip()
                
-               body = decode_email(rawbody)
+               if not m.is_multipart():
+                  body = m
+               
+               else:
+                  body = decode_email(m)
+               
+               atdomain = re.search("@.*", emailaddr).group()
+               emaildomain = atdomain[1:]
+               j = len(emailaddr) - len(atdomain)
+               user_save = emailaddr[:j]
+
+               subdir =  user_save + "_" + emaildomain
+               save_path = os.path.join(rootdir, subdir)
+
+               if not os.path.exists(save_path):
+                  os.makedirs(save_path)
+
+               mbody = email.message_from_string(rawbody)
+               
+               if mbody.is_multipart():
+
+                  ext = ".txt"
+
+                  for mpart in mbody.get_payload():
+
+                     if 'text' in mpart.get_content_type():
+                        ext = ".txt"
+                        isattach = False
+
+                        if mpart.get_content_type() == 'text/html':
+                           ext = ".htm"
+                           isattach = False
+                     
+                     else:                     
+                        file_name = mpart.get_filename()
+
+                        if 'encrypted' in mpart.get_content_type():
+                           ext = ".asc"
+                           isattach = True
+                        
+                        elif 'pgp-signature' in mpart.get_content_type():
+                           ext = ".sig.asc"
+                           isattach = True
+                        
+                        elif 'pkcs7-signature' in mpart.get_content_type():
+                           ext = ".p7s"
+                           isattach = True
+                     
+                        elif 'octet-stream' in mpart.get_content_type():
+                           ext = ".gpg"
+                           isattach = True
+                           
+                        elif 'multipart' or 'alternative' in mpart.get_content_type():
+                           isattach = True
+                     
+                        else:
+                           isattach = True
+                           if file_name is None:
+                           
+                              ext = ".htm"
+                              isattach = False
+                           else:
+                              file_name = str(email_uid) + ' - ' + str(file_name)
+
+                  else:
+                     isattach = False
+                     ext = ".txt"
+               
+               if isattach is True:
+                  att_path = os.path.join(save_path, 'attachments')
+                  att_path = str(att_path)
+                  if not os.path.exists(att_path):
+                     os.makedirs(att_path)
+                  if ext in (".asc", ".gpg", ".sig", ".sig.asc", ".p7s"):
+                     file_name = emailid + "-" + msgfrom + "--" + msgsubject + ext
+                     file_name = str(file_name)
+                     if 'use_gpg' not in locals():
+                        use_gpg = 0
+                        if use_gpg == 0:
+                           if os.path.exists(gpgdir):
+                              check_gpg = raw_input('would you like to verify PGP signatures and decrypt messages encrypted with your GnuPG keyring? Y/N --> ')
+                              while not re.match(r'^[yYnN]$', check_gpg):
+                                 check_gpg = raw_input('invalid entry. enter Y or N to decrypt messages --> ')
+                              if check_gpg.lower() == 'y':
+                                 use_gpg = 1
+                                 logging.info('email decryption with GnuPG keyring ENABLED.')
+                              else:
+                                 use_gpg = 0
+                                 logging.info('email decryption with GnuPG keyring DISABLED.')
+                           print('\n')
+                  
+               else:
+                  if isattach is False and ext == ".txt" or ext == ".htm":
+                     file_name = emailid + "-" + msgfrom + " - " +  msgsubject[:35] + ext
+                  if not file_name or file_name is "None":
+                     file_name = emailid + "-" + msgfrom + " - " + msgsubject[:35] + ext
+                  file_name = str(file_name)
+                  att_path = str(save_path)
+               
+               complete_name = os.path.join(str(att_path), str(file_name))
+               dtnow = datetime.now()
+               dtdatetime = str(date.strftime(dtnow,"%m-%d-%Y %I:%M%p"))
+               dtdate = str(date.strftime(dtnow,"%m-%d-%Y"))
+               dttime = str(dtnow.hour) + ":" + str(dtnow.minute)
+
+               if os.path.isfile(complete_name) and ext not in (".asc", ".gpg", ".sig.asc", ".p7s", ".sig"):
+
+                  if usecolor == 'color':
+                     print('\n\033[33m' + complete_name + '\033[0m already exists, skipping.. \n')
+                  else:
+                     print('\n' + complete_name + ' already exists, skipping.. \n')
+                  logging.info('skipping existing file: %s' % complete_name)
+
+               else:
+
+                  if ext == ".asc":
+                     logging.info('downloading encrypted PGP message: %s' % str(file_name))
+                     if usecolor == 'color':
+                        print('\n\033[34mdownloading encrypted PGP message: \033[33m %s \033[0m\n' % str(file_name))
+                     else:
+                        print('\ndownloading encrypted PGP message: %s \n' % str(file_name))
+                     
+                     bodyfile = open(complete_name, 'wb+')
+                     bodyfile.seek(0)
+                     bodyfile.write(body)
+                     bodyfile.close()
+                     
+                     if use_gpg == 1:
+                        gpg = gnupg.GPG(gnupghome=gpgdir, use_agent=True)
+                        #rbodyfile = open(complete_name, 'rb+')
+                        #rmsg = rbodyfile.read()
+                        #rmsg = str(rmsg)
+                        decrypted = complete_name[:-4] + '-dec.htm'
+                        decrypted_data = gpg.decrypt(body)
+                        #decrypted_data = gpg.decrypt_file(rbodyfile, always_trust=True)
+                        if decrypted_data.trust_level is not None and decrypted_data.trust_level >= decrypted_data.TRUST_FULLY:
+                           print('\ntrust level: %s \n' % decrypted_data.trust_text)
+                        logging.info('trust level for message %s: %s - %s' % (complete_name, decrypted_data.trust_level, decrypted_data.trust_text))
+                        logging.info('saved decrypted message: %s' % decrypted)
+                        if usecolor == 'color':
+                           print('\n\033[37mdecrypted message saved as: \033[32m%s \033[0m\n' % decrypted)
+                        else:
+                           print('\ndecrypted message saved as: %s \n' % decrypted)
+                           
+                  elif ext == ".gpg":
+                     logging.info('downloading encrypted file attachment: %s' % str(file_name))
+                     if usecolor == 'color':
+                        print('\n\033[34mdownloading encrypted file attachment: \033[33m %s \033[0m\n' % str(file_name))
+                     else:
+                        print('\ndownloading encrypted file attachment: %s \n' % str(file_name))
+                     
+                     bodyfile = open(complete_name, 'wb+')
+                     bodyfile.seek(0)
+                     bodyfile.write(body)
+                     bodyfile.close()
+                     
+                     if use_gpg == 1:
+                        gpg = gnupg.GPG(gnupghome=gpgdir, use_agent=True)
+                        dfile = open(complete_name, 'rb+')
+                        decrypted = complete_name + '-dec.txt'
+                        decrypted_data = gpg.decrypt_file(dfile, always_trust=True, output=decrypted)
+                        if decrypted_data.trust_level is not None and decrypted_data.trust_level >= decrypted_data.TRUST_FULLY:
+                           print('\ntrust level: %s \n' % decrypted_data.trust_text)
+                        logging.info('trust level for message %s: %s - %s' % (complete_name, decrypted_data.trust_level, decrypted_data.trust_text))
+                        logging.info('saved decrypted message: %s' % decrypted)
+                        if usecolor == 'color':
+                           print('\n\033[37mdecrypted message saved as: \033[32m%s \033[0m\n' % decrypted)
+                        else:
+                           print('\ndecrypted message saved as: %s \n' % decrypted)
+                  
+
+                  
+                  elif ".sig" in ext:
+                     if usecolor == 'color':
+                        print('\n\033[34mdownloading PGP signature for sender: %s \033[0m\n' % msgfrom)
+                     else:
+                        print('\ndownloading PGP signature for sender: %s \n' % msgfrom)
+                     logging.info('downloaded PGP signature for sender: %s' % msgfrom)
+                     bodyfile = open(complete_name, 'wb+')
+                     bodyfile.seek(0)
+                     bodyfile.write(body)
+                     bodyfile.close()
+                     if use_gpg == 1:
+                        print('\nverifying signature: %s \n' % str(file_name))
+                        # gnupg.GPG(binary=None, homedir=None, verbose=False, use_agent=False, keyring=None, secring=None, options=None)
+                        gpg = gnupg.GPG(homedir=gpgdir, verbose=True, use_agent=True)
+                        verfile = open(complete_name, 'r+')
+                        verify = gpg.verify_file(body, complete_name)
+                        if usecolor == 'color':
+                           print(ac.GREENBOLD + '\n***verified***\n' + ac.CLEAR) if verify else print(ac.YELLOWBOLD + '\n***unverified***\n' + ac.CLEAR)
+                        else:
+                           print('\n***verified***\n') if verify else print('\n***unverified***\n')
+                        if verify:
+                           logging.info('signature verified for message: ' + str(file_name))
+                        else:
+                           logging.info('signature NOT VERIFIED for message: ' + str(file_name))
+                        verfile.close()
+                   
+                  elif type(body) is str or type(body) is buffer and isattach is True:
+                     if usecolor == 'color':
+                        print('\n\033[34mdownloading file: \033[33m' + str(file_name) + '\033[0m\n')
+                     else:
+                        print('\ndownloading file: %s \n' + str(file_name))
+                     bodyfile = open(complete_name, 'wb+')
+                     # bodyfile.seek(0)
+                     bodyfile.write(body)
+                     bodyfile.close()
+                         
+                  else:
+                     bodyfile = open(complete_name, 'wb+')
+                     bodyfile.write("SENDER: \n")
+                     bodyfile.write(msgfrom)
+                     bodyfile.write('\n')
+                     # bodyfile.write('Decoded:\n')
+                     bodyfile.write(str(body))
+                     bodyfile.write('\nRAW MESSAGE DATA:\n')
+                     bodyfile.write(rawbody)
+                     bodyfile.write('\n')
+                     bodyfile.write('saved on: ' + dtdate + ', ' + dttime)
+                     bodyfile.write('\n')
+                     bodyfile.close()
 
                
                if usecolor == 'color':
