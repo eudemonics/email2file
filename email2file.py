@@ -524,13 +524,13 @@ def decode_email(msg):
       print('\nDEBUG: returning msg as parsed\n')
       return parsed # nothing more to parse
    
-   elif msg.get_payload(decode=True) is None or type(msg) is NoneType:
+   elif msg.get_payload() is None or type(msg) is NoneType:
       print('\nDEBUG: returning msg as NoneType\n')
       return msg
    
    else:
    
-      decoded = msg.get_payload(decode=True)
+      decoded = msg.get_payload()
       
       if decoded is None:
          return msg
@@ -793,7 +793,7 @@ def decode_email(msg):
                   continue
       
       if att is False:
-         decoded = msg
+         decoded = msg.get_payload(decode=True)
 
          if html is None and text is not None:
             decoded = text.strip()
@@ -805,8 +805,7 @@ def decode_email(msg):
       else:
          decoded = attachment
    
-      return decoded
-                  
+      return decoded                  
          
 # END FUNCTION decode_email(msg)
 
