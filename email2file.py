@@ -521,11 +521,20 @@ def decode_email(msg):
 
    if type(msg) is str:
       parsed = msg
+      print('\nDEBUG: returning msg as parsed\n')
       return parsed # nothing more to parse
+   
+   elif msg.get_payload(decode=True) is None or type(msg) is NoneType:
+      print('\nDEBUG: returning msg as NoneType\n')
+      return msg
    
    else:
    
       decoded = msg.get_payload(decode=True)
+      
+      if decoded is None:
+         return msg
+         print('\nDEBUG: returning decoded as NoneType\n')
          
       mdate = msg['Date']
       msgfrom = msg['From'].replace('/', '-')
@@ -967,10 +976,14 @@ def getimap(emailaddr, emailpass, imap_server, sslcon):
                msgfrom = msgfrom[:35].strip()
                
                if not m.is_multipart():
+                  print('\nDEBUG: NOT MULTIPART \n')
                   body = m
                
-               else:
+               else: # multipart message
                   body = decode_email(m)
+               
+               # pad with 0's up to 3 digits
+               emailid = str(email_uid).zfill(3)
                
                atdomain = re.search("@.*", emailaddr).group()
                emaildomain = atdomain[1:]
@@ -1020,6 +1033,7 @@ def getimap(emailaddr, emailpass, imap_server, sslcon):
                            
                         elif 'multipart' or 'alternative' in mpart.get_content_type():
                            isattach = True
+                           decode_email(mpart)
                      
                         else:
                            isattach = True
@@ -1028,7 +1042,7 @@ def getimap(emailaddr, emailpass, imap_server, sslcon):
                               ext = ".htm"
                               isattach = False
                            else:
-                              file_name = str(email_uid) + ' - ' + str(file_name)
+                              file_name = str(emailid) + ' - ' + str(file_name)
 
                   else:
                      isattach = False
@@ -1099,7 +1113,8 @@ def getimap(emailaddr, emailpass, imap_server, sslcon):
                         #rmsg = rbodyfile.read()
                         #rmsg = str(rmsg)
                         decrypted = complete_name[:-4] + '-dec.htm'
-                        decrypted_data = gpg.decrypt(body)
+                        decryptext = complete_name[:-4] + '-dec.txt'
+                        decrypted_data = gpg.decrypt(body, always_trust=True, output=decryptext)
                         #decrypted_data = gpg.decrypt_file(rbodyfile, always_trust=True)
                         if decrypted_data.trust_level is not None and decrypted_data.trust_level >= decrypted_data.TRUST_FULLY:
                            print('\ntrust level: %s \n' % decrypted_data.trust_text)
@@ -1135,8 +1150,6 @@ def getimap(emailaddr, emailpass, imap_server, sslcon):
                            print('\n\033[37mdecrypted message saved as: \033[32m%s \033[0m\n' % decrypted)
                         else:
                            print('\ndecrypted message saved as: %s \n' % decrypted)
-                  
-
                   
                   elif ".sig" in ext:
                      if usecolor == 'color':
