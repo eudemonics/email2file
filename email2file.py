@@ -589,9 +589,9 @@ def decode_email(msg):
             sigdata = part.get_payload(decode=True)
             signame = 'sig.p7s'
             if part.get_filename() is None:
-               signame = msgfrom + '-' msgsubject + '-' + msgdate + '.p7s'
+               signame = msgfrom + '-' + msgsubject + '-' + msgdate + '.p7s'
             else:
-               signame = msgfrom + '-' msgdate + '-' + part.get_filename()
+               signame = msgfrom + '-' + msgdate + '-' + part.get_filename()
             att_path = os.path.join(att_dir, signame)
             sigfile = open(att_path, 'wb+')
             sigfile.write(sigdata)
@@ -617,12 +617,9 @@ def decode_email(msg):
             # html or rich-text format
             elif a.get_content_type() == 'text/html':
                html = unicode(a.get_payload(decode=True), str(charset), "ignore").encode('utf8', 'replace').strip()
-            else:
-               text = part.get_payload(decode=True)
-               continue 
                
             # attachments
-            elif 'multipart' or 'application' in b.get_content_type():
+            elif "multipart" or "application" in b.get_content_type():
                for bsub in b.get_payload():
                   bnext = bsub.get_payload(decode=True)
                   attachment = bnext
@@ -648,7 +645,11 @@ def decode_email(msg):
                         print('\nan error occurred \n')
                   else:
                      attachment = decode_email(bsub)
-                     
+
+            else:
+               text = part.get_payload(decode=True)
+               continue 
+                                   
          # PGP encrypted message or attachment      
          elif part.get_content_type() == 'application/pgp-encrypted' or part.get_content_type() == 'application/octet-stream':
             att = True
