@@ -1,9 +1,10 @@
 #!/usr/bin/env python
 #
-##### EMAIL2FILE v2.3!
+##### EMAIL2FILE v2.4!
 ##### AUTHOR: vvn < root @ nobody . ninja >
-##### VERSION RELEASE: March 16, 2017
-##### GPG public key: F6679EC4
+##### VERSION RELEASE: March 20, 2017
+##### GPG KEY ID: D52CB53F
+##### GPG fingerprint: E8EA 199E 7F78 DA61 63F7  0477 41E3 DA23 D52C B53F
 #
 ##### SAVE EMAIL LISTS AS PLAIN TEXT format in script directory with one address per line.
 ##### you can include the password, if known, as a base64-encoded string 
@@ -33,6 +34,10 @@
 #
 ##### ALSO *FINALLY* GOT MULTIPLE FILE ATTACHMENTS WORKING! they even
 ##### get saved in the proper encoding!
+#
+##### not just multiple file attachments works now, you can also
+##### decrypt ENCRYPTED FILE ATTACHMENTS automatically with your
+##### GPG keyring!
 #####
 ##### TO RUN SCRIPT: open terminal to script directory and enter:
 ##### "python email2file.py"
@@ -67,15 +72,20 @@
 ##### logs will be saved in the 'logs' folder inside the 'emails' directory
 ##### or the user-specified location.
 #####
-##### ****KNOWN BUGS (3/16/2017):****
+##### ****KNOWN BUGS v 2.40 (3/16/2017):****
 ##### - socket.error "[Errno 54] Connection reset by peer"
 #####   will interrupt the script execution. in case that it happens,
 #####   just start the script again:
 #####     python email2file.py or chmod +x *.py && ./email2file.py
 ##### - GPG signature verification always seems to fail, usually with
 #####   969 bytes-sized files named "signature.asc"
+##### - i have not caught every single obscure parsing/encoding exception
+#####   so don't freak if one happens. there are a couple i am currently
+#####   working on that should hopefully be fixed in an upcoming update.
+#####   please report any errors to vvn at root @ nobody . ninja
 ##### - yes there's a lot of redundant code and message content might
 #####   get saved more than once because i wasn't sure what worked!
+##### - loop through emails ends prematurely
 #####
 ##### if you run tor and proxychains, you can run the script within proxychains:
 #####   proxychains python email2file.py
@@ -138,29 +148,29 @@ except:
 
 colorintro = '''
 \033[34m=====================================\033[33m
-- ---------\033[36m EMAIL2FILE v2.3 \033[33m-----------
-- -------------------------------------
-- -----------\033[35m author : vvn \033[33m------------
-- ---------\033[32m root@nobody.ninja \033[33m---------
+---------\033[36m EMAIL2FILE v2.4 \033[33m-----------
+-------------------------------------
+-----------\033[35m author : vvn \033[33m------------
+---------\033[32m root@nobody.ninja \033[33m---------
 \033[34m=====================================\033[33m
-- ----\033[37m support my work: buy my EP! \033[33m----
-- --------\033[37m http://dreamcorp.us \033[33m--------
-- ---\033[37m facebook.com/dreamcorporation \033[33m---
-- ------\033[32m thanks for the support! \033[33m------
+----\033[37m support my work: buy my EP! \033[33m----
+--------\033[37m http://dreamcorp.us \033[33m--------
+---\033[37m facebook.com/dreamcorporation \033[33m---
+------\033[32m thanks for the support! \033[33m------
 \033[34m=====================================\n\033[0m
 '''
 
 cleanintro = '''
 =====================================
-- --------- EMAIL2FILE v2.3 -----------
-- -------------------------------------
-- ----------- author : vvn ------------
-- --------- root@nobody.ninja ---------
+--------- EMAIL2FILE v2.4 -----------
+-------------------------------------
+----------- author : vvn ------------
+--------- root@nobody.ninja ---------
 =====================================
-- ---- support my work: buy my EP! ----
-- -------- http://dreamcorp.us --------
-- --- facebook.com/dreamcorporation ---
-- ------ thanks for the support! ------
+---- support my work: buy my EP! ----
+-------- http://dreamcorp.us --------
+--- facebook.com/dreamcorporation ---
+------ thanks for the support! ------
 =====================================
 '''
 
@@ -277,13 +287,13 @@ logging.basicConfig(level=logging.DEBUG,
                     filename=logfile,
                     filemode='ab+')
 
+print('')
+
 # CHECK IF SSL USED TO CONNECT TO IMAP SERVER
 usesslcheck = raw_input('use SSL? Y/N --> ')
 
 while not re.search(r'^[nyNY]$', usesslcheck):
    usesslcheck = raw_input('invalid selection. please enter Y for SSL or N for unencrypted connection. -->')
-
-print('')
 
 sslcon = 'yes'
 
@@ -292,8 +302,6 @@ if usesslcheck.lower() == 'n':
 
 else:
    sslcon = 'yes'
-
-print('')
 
 passprompt = 0
 
@@ -574,13 +582,16 @@ def decode_email(msg):
    html = None
    pars = msg.get_payload()
    pars = str(msg)
-   msgdir = dir(msg)
-   parsdir = dir(pars)
-   msgwalk = msg.walk()
+   #msgdir = dir(msg)
+   #parsdir = dir(pars)
+   #msgwalk = msg.walk()
+   
+   #wa = [x for x in (msgdir, parsdir, msgwalk)]
+   #print(wa)
 
    if type(msg) is str:
       parsed = msg
-      #print('\n***DEBUG: returning msg as parsed\n')
+      #print('\n***: returning msg as parsed\n')
       logging.info('returned msg as parsed')
       return parsed # nothing more to parse
    
@@ -594,7 +605,7 @@ def decode_email(msg):
       decoded = msg.get_payload()
       
       if decoded is None:
-         logging.info('returned decoded as NoneType')
+         #print('\n***DEBUG LINE 599: returning decoded as NoneType\n')
          return msg
          
       msgfrom = ''
@@ -657,20 +668,18 @@ def decode_email(msg):
       att_dir = os.path.join(save_path, 'attachments')
       if not os.path.exists(att_dir):
          os.makedirs(att_dir)
-      
-      #print('\nDEBUG: returning decoded as text \n')
+
+      # MULTITYPE CHECK
       decoded = msg.get_payload()	
-      
-      content_type = msg.get_content_type()
-      
+      content_type = msg.get_content_type()      
       multitypes = ['multipart', 'alternative', 'application', 'related']
-      
       charset = msg.get_content_charset()
       
       print("\033[32mContent-Type: %s \nCharset: %s \n\033[0m" % (content_type, charset))
       
       # plain text format
       if content_type == 'text/plain':
+         att = False
          decoded = unicode(msg.get_payload(decode=True), str(charset), "ignore").encode('utf8', 'replace').strip()
          enc = msg['Content-Transfer-Encoding']
          if enc == "base64":
@@ -679,6 +688,7 @@ def decode_email(msg):
 
       # rich text/html format
       elif content_type == 'text/html':
+         att = False
          decoded = unicode(msg.get_payload(decode=True), str(charset), "ignore").encode('utf8', 'replace').strip()
       
       if any(x in content_type for x in multitypes):
@@ -699,19 +709,19 @@ def decode_email(msg):
          while attfile is None and n < lim:
             n += 1
             attfile = decoded[n].get_filename()
-            #print("***DEBUG*** \nDECODED ATTACHMENT FILE #%d: %s \n\n" % (n, attfile))
+            print("\033[95m\nDECODED ATTACHMENT FILE #%d: %s \033[0m\n\n" % (n, attfile))
             attachment = decoded[n].get_payload()
             att_contype = decoded[n].get_content_type()
+            
+            #  CHECK MULTIPART CONTENT TYPE #
             if 'multipart' in att_contype:
                for att in attachment:
                   att_data = att.get_payload(decode=True)
                   att_type = att.get_content_type()
                   if 'plain' in att_type:
                      att_name = msgfrom + '-' + msgsubject + '.txt'
-                     att_name = os.path.join(save_path, str(att_name))
                   elif 'html' in att_type:
                      att_name = msgfrom + '-' + msgsubject + '.html'
-                     att_name = os.path.join(save_path, str(att_name))
                   else: 
                      att_name = att.get_filename()
                      att_name = os.path.join(att_dir, str(att_name))
@@ -737,13 +747,11 @@ def decode_email(msg):
          
             else:
                if 'html' in att_contype:
-                  att_name = msgid + '-' + msgfrom + '-' + msgsubject + '.html'
-                  att_dir = save_path
+                  att_name = msgfrom + '-' + msgsubject + '-' + msgdate + '.html'
                elif 'plain' in att_contype:
-                  att_name = msgid + '-' + msgfrom + '-' + msgsubject + '.txt'
-                  att_dir = save_path
+                  att_name = msgfrom + '-' + msgsubject + '-' + msgdate + '.txt'
                else:
-                  att_name = msgid + '-' + msgfrom + '-' + msgsubject + '-' + attfile
+                  att_name = msgfrom + '-' + msgsubject + '-' + attfile
                filename = os.path.join(att_dir, str(att_name))
                if not os.path.isfile(filename):
                   try:
@@ -767,10 +775,9 @@ def decode_email(msg):
                         logging.error('an error occurred while trying to write file %s: %s' % (filename, str(e)))   
          
          if attfile is None:
-            filename = msgid + '-' + msgfrom + '-' + msgsubject + '.htm'
-            att_dir = save_path
+            filename = msgfrom + '-' + msgsubject + '-' + msgdate + '.txt'
          else:
-            filename = msgid + '-' + str(attfile)
+            filename = msgsubject + '-' + str(attfile)
       
          filename = os.path.join(att_dir, filename)
          
@@ -779,7 +786,7 @@ def decode_email(msg):
                writedata = open(filename, 'wb+')
                writedata.write(attachment)
                writedata.close()
-               print('\nsaved attachment: %s \n' % filename)
+               print('\nsaved attachment attempt #1: %s \n' % filename)
                logging.info('saved attachment: %s' % filename)
             except:
                pass
@@ -788,7 +795,7 @@ def decode_email(msg):
                   writedata.write(attachment.get_payload(decode=True))
                   writedata.close()
                   #print('\n***DEBUG*** \nLINE 788: \nsaved attachment: %s \n' % filename)
-                  logging.info('saved attachment: %s' % filename)
+                  logging.info('saved attachment attempt #2: %s' % filename)
                except:
                   pass
                   logging.error('an error occurred while trying to write file %s' % filename)
@@ -1243,7 +1250,7 @@ def getimap(emailaddr, emailpass, imap_server, sslcon):
                msgfrom = msgfrom[:35].strip()
                
                if not m.is_multipart():
-                  print('\n\033[36m**MSG IS NOT MULTIPART** \n')
+                  print('\n***MSG PAYLOAD IS NOT MULTIPART*** \n')
                   body = m
                   
                elif m is None:
@@ -1271,24 +1278,25 @@ def getimap(emailaddr, emailpass, imap_server, sslcon):
                isattach = False
                ext = ".htm"
                
+               # CHECK IF MULTIPART #
                if mbody.is_multipart():
 
                   ext = ".txt"
 
                   for mpart in mbody.get_payload():
 
-                     if 'text' in mpart.get_content_type():
+                     if 'plain' in mpart.get_content_type():
                         ext = ".txt"
                         isattach = False
                         att_path = save_path
 
-                        if mpart.get_content_type() == 'text/html':
-                           ext = ".htm"
-                           isattach = False
-                           att_path = save_path
+                     elif mpart.get_content_type() == 'text/html':
+                        ext = ".htm"
+                        isattach = False
+                        att_path = save_path
                      
                      else:                     
-                        file_name = mpart.get_filename()
+                        file_name = str(mpart.get_filename())
 
                         if 'encrypted' in mpart.get_content_type():
                            ext = ".asc"
@@ -1302,23 +1310,29 @@ def getimap(emailaddr, emailpass, imap_server, sslcon):
                            ext = ".p7s"
                            isattach = True
                      
-                        elif 'octet-stream' in mpart.get_content_type():
+                        elif 'application' or 'octet-stream' in mpart.get_content_type():
                            ext = ".gpg"
                            isattach = True
                            
                         elif 'multipart' or 'alternative' in mpart.get_content_type():
+                           ext = ".html"
                            isattach = True
                      
                         else:
-                           isattach = True
+                           ext = ".txt"
+                           isattach = false
+                           att_path = save_path
+                           
+                        if 'None' in file_name:
+                           file_name = emailid + ' - ' + msgfrom + ' - ' + msgsubject + ext
                         
-                        file_name = str(emailid) + ' - ' + str(file_name)
+                        file_name = str(file_name)
 
                else:
                   isattach = False
                   att_path = save_path
-                  ext = ".txt"
                
+               # CHECK FOR ATTACHMENT #
                if isattach is True:
                   att_path = os.path.join(save_path, 'attachments')
                   att_path = str(att_path)
@@ -1328,6 +1342,7 @@ def getimap(emailaddr, emailpass, imap_server, sslcon):
                      if not file_name:
                         file_name = emailid + "-" + msgfrom + "--" + msgsubject + ext
                      file_name = str(file_name)
+                     
                      if 'use_gpg' not in locals():
                         use_gpg = 0
                         if use_gpg == 0:
@@ -1369,11 +1384,13 @@ def getimap(emailaddr, emailpass, imap_server, sslcon):
                         print('\n\033[34mdownloading file: \033[33m' + str(file_name) + '\033[0m\n')
                      else:
                         print('\ndownloading file: %s \n' + str(file_name))
+                        
                      bodyfile = open(complete_name, 'wb+')
                      bodyfile.seek(0)
                      bodyfile.write(body)
                      bodyfile.close()
 
+                  # EXTENSION: .ASC - ENCRYPTED PGP MESSAGE #
                   if ext == ".asc":
                      logging.info('downloading encrypted PGP message: %s' % str(file_name))
                      if usecolor == 'color':
@@ -1386,6 +1403,7 @@ def getimap(emailaddr, emailpass, imap_server, sslcon):
                      bodyfile.write(body)
                      bodyfile.close()
                      
+                     # TRY TO DECRYPT AND VERIFY GPG SIGNATURES #
                      if use_gpg == 1:
                         gpg = gnupg.GPG(gnupghome=gpgdir, use_agent=True)
                         #rbodyfile = open(complete_name, 'rb+')
@@ -1404,17 +1422,160 @@ def getimap(emailaddr, emailpass, imap_server, sslcon):
                         else:
                            print('\ndecrypted message saved as: %s \n' % decrypted)
                            
+                  # EXTENSION: .GPG - ENCRYPTED FILE ATTACHMENTS #
                   elif ext == ".gpg":
-                     logging.info('downloading encrypted file attachment: %s' % str(file_name))
-                     if usecolor == 'color':
-                        print('\n\033[34mdownloading encrypted file attachment: \033[33m %s \033[0m\n' % str(file_name))
-                     else:
-                        print('\ndownloading encrypted file attachment: %s \n' % str(file_name))
                      
-                     bodyfile = open(complete_name, 'wb+')
-                     bodyfile.seek(0)
-                     bodyfile.write(body)
-                     bodyfile.close()
+                     if type(body) is str:
+                        gdecoded = body
+                        
+                     else:
+                        
+                        # MULTITYPE CHECK
+                        multitypes = ['multipart', 'alternative', 'application', 'related']
+                        g = body
+                        
+                        if type(body) is list:
+                           g = body[0]
+                           gdata = g.get_payload(decode=True)
+                           gcontent_type = g.get_content_type()
+                           gcharset = g.get_content_charset()
+                           
+                           if not os.path.isfile(complete_name):
+                              try:
+                                 writedata = open(complete_name, 'wb+')
+                                 writedata.seek(0)
+                                 writedata.write(gdata)
+                                 writedata.close()
+                                 print('\nsaved message data (try #1): %s \n' % complete_name)
+                                 logging.info('saved messagae data: %s' % complete_name)
+                              except:
+                                 pass
+                                 logging.warning('exception occurred while trying to save %s' % complete_name)
+                                 try:
+                                    writedata = open(complete_name, 'wb+')
+                                    writedata.seek(0)
+                                    writedata.write(g.get_payload())
+                                    writedata.close()
+                                    print('\nsaved message data (try #2): %s \n' % complete_name)
+                                    logging.info('saved message data: %s' % complete_name)
+                                 except e:
+                                    pass
+                                    print('\nan error has occurred: %s \n' % str(e))
+                                    logging.error('an error occurred while trying to write file %s: %s' % (complete_name, str(e)))  
+                           
+                        gdecoded = g.get_payload()
+   
+                        # ENCODING & CHARSET CHECK
+                        gcontent_type = g.get_content_type() 
+                        gcharset = g.get_content_charset()
+                           
+                        print("\033[32mContent-Type: %s \nCharset: %s \n\033[0m" % (gcontent_type, gcharset))
+                     
+                        # plain text format
+                        if gcontent_type == 'text/plain':
+                           att = False
+                           gdecoded = unicode(g.get_payload(decode=True), str(gcharset), "ignore").encode('utf8', 'replace').strip()
+                           enc = msg['Content-Transfer-Encoding']
+                           if enc == "base64":
+                              gdecoded = g.get_payload()
+                              gdecoded = base64.decodestring(gdecoded)
+
+                        # rich text/html format
+                        elif gcontent_type == 'text/html':
+                           att = False
+                           gdecoded = unicode(g.get_payload(decode=True), str(gcharset), "ignore").encode('utf8', 'replace').strip()
+      
+                        # attachment file(s)
+                        if any(x in gcontent_type for x in multitypes):
+                           #print("\033[35m***DEBUG*** \n\033[33mLINE 607: MULTITYPE: %s \n\033[0m" % content_type)
+                           att = True
+                           n = 0
+                           glim = len(body) - 1 
+                           
+                           if type(body) is list:
+                              gattfile = gdecoded[n].get_filename()
+                              gattachment = gdecoded[n].get_payload()
+                              gatt_contype = gdecoded[n].get_content_type()
+                           else:
+                              gatt_contype = body.get_content_type()
+                              gattfile = body.get_filename()
+                              gattachment = body.get_payload(decode=True)
+                     
+                           while gattfile is None and n < glim:
+                              n += 1
+                              gattfile = gdecoded[n].get_filename()
+                              print("\033[95m\nDECODED ATTACHMENT FILE #%d: \033[33m%s \033[0m\n\n" % (n, gpgattfile))
+                              gattachment = gdecoded[n].get_payload()
+                              gatt_contype = gdecoded[n].get_content_type()
+                           
+                              # CHECK FOR MULTIPART CONTENT TYPE #
+                              if 'multipart' in gatt_contype:
+                                 for gatt in gattachment:
+                                    gatt_data = gatt.get_payload(decode=True)
+                                    gatt_type = gatt.get_content_type()
+                                    if 'plain' in gatt_type:
+                                       att_name = msgfrom + '-' + msgsubject + '.txt'
+                                       att_dir = save_dir
+                                    elif 'html' in gatt_type:
+                                       att_name = msgfrom + '-' + msgsubject + '.html'
+                                       att_dir = save_dir
+                                    else: 
+                                       att_name = gatt.get_filename()
+                                       att_dir = os.path.join(save_dir, 'attachments')
+                                       
+                                    filename = os.path.join(att_dir, str(att_name))
+                                    
+                                    if not os.path.isfile(filename):
+                                       try:
+                                          writedata = open(filename, 'wb+')
+                                          writedata.seek(0)
+                                          writedata.write(gatt_data)
+                                          writedata.close()
+                                          print('\nsaved attachment (try #1): %s \n' % filename)
+                                          logging.info('saved attachment: %s' % filename)
+                                       except:
+                                          pass
+                                          logging.warning('exception occurred while trying to save %s' % filename)
+                                          try:
+                                             writedata = open(filename, 'wb+')
+                                             writedata.seek(0)
+                                             writedata.write(gatt.get_payload())
+                                             writedata.close()
+                                             print('\nsaved attachment (try #2): %s \n' % filename)
+                                             logging.info('saved attachment: %s' % filename)
+                                          except e:
+                                             print('\nan error has occurred: %s \n' % str(e))
+                                             logging.error('an error occurred while trying to write file %s: %s' % (filename, str(e)))  
+                           
+                           
+                              else:
+                                 if 'html' in gatt_contype:
+                                    att_name = msgfrom + '-' + msgsubject + '-' + msgdate + '.html'
+                                 elif 'plain' in gatt_contype:
+                                    att_name = msgfrom + '-' + msgsubject + '-' + msgdate + '.txt'
+                                 else:
+                                    att_name = msgfrom + '-' + msgsubject + '-' + gattfile
+                                 filename = os.path.join(att_dir, str(att_name))
+                                 if not os.path.isfile(filename):
+                                    try:
+                                       writedata = open(filename, 'wb+')
+                                       writedata.write(gattachment)
+                                       writedata.close()
+                                       print('\n\033[31m**attachment saved to file successfully*** \033[0m \nFILE LOCATION: %s \n' % filename)
+                                       logging.info('saved attachment: %s' % filename)
+                                    except:
+                                       pass
+                                       print('\n***skipped exception, MOVING ON.. \n')
+                                       logging.warning('passed exception trying to save %s. trying again..' % filename)
+                                       try:
+                                          writedata = open(filename, 'wb+')
+                                          writedata.write(gattachment.get_payload())
+                                          writedata.close()
+                                          print('\nsaved attachment: %s \n' % filename)
+                                          logging.info('saved attachment: %s' % filename)
+                                       except e:
+                                          print('\nan error has occurred: %s \n' % str(e))
+                                          logging.error('an error occurred while trying to write file %s: %s' % (filename, str(e)))  
                      
                      if use_gpg == 1:
                         gpg = gnupg.GPG(gnupghome=gpgdir, use_agent=True)
@@ -2446,10 +2607,13 @@ else:
          print("\nLOGIN FAILED: an unknown error has occurred.\n")
          logging.error('unknown error occurred while attempting login for %s.' % emailaddr)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 
 
-      print("\nexiting program..\n")
+      print("\nexiting application..\n")
+
+      logging.info("exited application.")
+      logging.shutdown()
       sys.exit(0)
 
-logging.info("exited application.")
+logging.info("all tasks completed successfully. end of program.")
 logging.shutdown()
-print("\nthanks for using EMAIL2FILE! \nexiting program..\n")
-sys.exit(0)		
+
+sys.exit(0)
