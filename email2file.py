@@ -221,6 +221,7 @@ changedir = raw_input('inbox contents will be saved to \'emails\' folder by defa
 while not re.search(r'^[nyNY]$', changedir):
    changedir = raw_input('invalid entry. enter Y to change save directory or N to use default --> ')
 
+
 print('')
 
 homedir = os.path.expanduser("~")
@@ -237,7 +238,9 @@ if changedir.lower() == 'y':
       matchstr = r'^[^\0]+$'
    while not re.match(matchstr, savedir):
       savedir = raw_input('invalid path. please enter a valid output directory --> ')
-      print('')
+
+
+print('')
 
 if not os.path.exists(savedir):
    os.makedirs(savedir, 0755)
@@ -262,7 +265,8 @@ usesslcheck = raw_input('use SSL? Y/N --> ')
 while not re.search(r'^[nyNY]$', usesslcheck):
    usesslcheck = raw_input('invalid selection. please enter Y for SSL or N for unencrypted connection. -->')
 
-print('\n')
+
+print('')
 
 sslcon = 'yes'
 
@@ -350,6 +354,7 @@ def checklogin(emailaddr, emailpass, imap_server, sslcon):
       print('\nattempting to log onto: ' + ac.GREEN + emailaddr + ac.CLEAR)
    else:
       print('\nattempting to log onto: %s' % emailaddr)
+   print('\n')
    
    logging.info('attempting to connect to IMAP server to check login credentials for account %s' % emailaddr)
 
@@ -422,7 +427,7 @@ def checklogin(emailaddr, emailpass, imap_server, sslcon):
 
    except server.error as e:
       pass
-      print('\nconnection attempt to %s failed with IMAP error: %s \n' % (emailaddr, str(e)))
+      print('\nconnection attempt to %s failed with IMAP error: %s \n' % (str(e), emailaddr))
       logging.error('IMAPLIB ERROR: ' + str(e) + ' for account ' + emailaddr)
       checkresp = 'IMAPERROR'
 
@@ -529,8 +534,6 @@ def decode_email(msgbody):
       
       for part in msg.get_payload():
       
-         a = 1
-      
          charset = part.get_content_charset()
          filename = part.get_filename()
 
@@ -583,7 +586,21 @@ def decode_email(msgbody):
          
          else:
             use_gpg = 0
-         
+                        
+         if use_gpg == 1:
+            #crypt = unicode(part.get_payload(decode=True), str(charset), "ignore").encode('utf8', 'replace').strip()
+            crypt = attachment.get_payload(decode=True)
+            gpg = gnupg.GPG(gnupghome=gpgdir, use_agent=True)
+            attdec = gpg.decrypt(base64.decodestring(crypt), always_trust=True)
+               
+         if 'multipart' in part.get_content_maintype():
+            n = 0
+            while n < len(part.values()):
+               for i in part.values():
+                  print(' \033[33m ' + str(n) + ' \033[37m ' + str(i) + '\033[0m\n')
+                  n += 1
+            continue
+
          if filename:
 
             #homedir = os.path.expanduser("~")
@@ -611,31 +628,12 @@ def decode_email(msgbody):
             att_path = os.path.join(att_dir, filename)
 
             att = True
-         
-         if 'multipart' in part.get_content_type():
-            n = 0
-            while n < len(part.values()):
-               for i in part.values():
-                  print(' \033[33m ' + str(n) + ' \033[37m ' + str(i) + '\033[0m\n')
-                  n += 1
-            continue
-            print('\n***DEBUG*** \n\nDIR: \n')
-            for d in dir(part.get_payload()):
-               print(d)
-                        
-         if use_gpg == 1:
-            #crypt = unicode(part.get_payload(decode=True), str(charset), "ignore").encode('utf8', 'replace').strip()
-            crypt = part.get_payload(a)
-            crypt = crypt.get_payload(decode=True)
-            gpg = gnupg.GPG(gnupghome=gpgdir, use_agent=True)
-            attdec = gpg.decrypt(base64.decodestring(crypt), always_trust=True)
-
-            if "encrypted" in part.get_content_type():
+            
+            if "multipart/encrypted" in part.get_content_type():
                if not os.path.isfile(att_path):
                   attfile = open(att_path, 'wb+')
                   attfile.write(attdec)
                   attfile.close()
-                  logging.info('saved attachment to file: %s' % att_path)
                   if usecolor == 'color':
                      print('\n\033[36msaved attachment to file: \033[32m%s \033[0m\n' % att_path)
                   else:
@@ -649,10 +647,8 @@ def decode_email(msgbody):
             else:
                if not os.path.isfile(att_path):
                   attfile = open(att_path, 'wb+')
-                  pl = part.get_payload(a)
-                  attfile.write(pl.get_payload(decode=True))
+                  attfile.write(part.get_payload(decode=True))
                   attfile.close()
-                  logging.info('saved attachment to file: %s' % att_path)
                   if usecolor == 'color':
                      print('\n\033[36msaved attachment to file: \033[32m%s \033[0m\n' % att_path)
                   else:
@@ -664,8 +660,6 @@ def decode_email(msgbody):
                      print('\n%s already exists, skipping..\n' % att_path)
             
             decoded = attfile
-         
-         a += 1
 
       if att is False:
          decoded = msg
@@ -901,15 +895,18 @@ def getimap(emailaddr, emailpass, imap_server, sslcon):
                            isattach = False
                         else:
                            file_name = str(email_uid) + ' - ' + str(file_name)
-                           
-                     decode_email(mbody)
 
                else:
                   isattach = False
                   ext = ".txt"
                
-               # pad with 0's up to 4 digits
                emailid = str(email_uid).zfill(4)
+               
+               #if re.match(r'^[1-9]$', email_uid):
+               #   emailid = '0' + str(email_uid)
+               
+               #else:
+               #   emailid = str(email_uid)
                
                print('\n')
                
@@ -1757,249 +1754,226 @@ else:
                encryptsel = 'y'
             elif gotoencsel == '2':
                newpwlistfile = raw_input('please enter a filename for the generated encoded list --> ')
-             while not re.match(r'^[1-3]$', checkresume):
-               checkresume = raw_input('invalid input. enter 1 to resume, 2 to start new, or 3 to skip --> ')
-            checkexist = raw_input('\ndo this for all downloads? Y/N --> ')
-            while not re.match(r'^[YyNn]$', checkexist):
-               checkexist = raw_input('invalid entry. enter Y to use same action on existing files or N to always ask --> ')
-            if checkexist.lower() == 'y':
-               existing = 1
+               while not re.match(r'^[\w\-. ]+$', newpwlistfile):
+                  newpwlistfile = raw_input("invalid format. please enter a valid filename --> ")
+               print("\nlaunching encodelist.py.. \n")
+               import encodelist
+               pwlistfile = encodelist.encode_pass(pwlistfile, newpwlistfile)
+               encodesel = 'y'
+               pwlistfile = newpwlistfile
             else:
-               existing = 0
-
-         if checkresume == '1': # RESUME DOWNLOAD AT LAST LOCAL BYTE
-            dld = int(resumesize)
-            resumeheader = {'Range': 'bytes=%s-' % str(dld)}
-            dlmsg = "\nattempting to resume download for %s. this may take awhile depending on file size... \n" % outfile
-            df = open(savefile, 'a+b')
-         elif checkresume == '2': # DISREGARD SAVED FILE, START DOWNLOAD FROM TOP
-            dld = 0
-            resumeheader = None  
-            dlmsg = "\nwriting content to \'download\' directory as file %s. this may take awhile depending on file size... \n" % outfile
-            df = open(savefile, 'wb+')
-         else: # SKIPPING DOWNLOAD
-            resumeheader = None
-            df = open(savefile, 'r+')
-            dlmsg = "\nskipping download for %s\n" % outfile
-
-      else: # NEW DOWNLOAD REQUEST
-         checkresume = '2'
-         dld = 0
-         df = open(savefile, 'wb+')
-         resumeheader = None
-         dlmsg = "\nwriting content to \'download\' directory as file %s. this may take awhile depending on file size... \n" % outfile
-
-      print(dlmsg)
-
-      if not checkresume == '3': # IF NOT SKIPPING
-         r = scraper.get(cfurl, stream=True, headers=resumeheader, verify=False, allow_redirects=True, proxies=proxystring)
-         filesize = r.headers.get('Content-Length')
-         if checkresume == '1' and filesize is not None:
-            filesize = int(filesize) + int(resumesize)
-         filetype = r.headers.get('Content-Type')
-         #starttime = date.strftime(datetime.now(), "%H:%M:%S")
-         start = getsecs(datetime.now())
-         time.sleep(1)
-         #today = datetime.now()
-         #startdate = date.strftime(today,"%m-%d-%Y %H:%M:%S ")
-         #print("start time: %s \n" % startdate)
-         with df as dlfile:
-            if filesize is not None and 'text' not in filetype:
-               bytesize = int(filesize)
-               kbsize = getkb(filesize)
-               mbsize = getmb(filesize)
-               qt = 'bytes'
-               size = bytesize
-               if kbsize > 10:
-                  qt = 'kb'
-                  size = kbsize
-                  if mbsize > 1 :
-                     qt = 'mb'
-                     size = mbsize
-               print('\n\033[33mfile size:\033[31m %s %s \033[0m\n' % (str(size), qt))
-               for chunk in r.iter_content(chunk_size=2048):
-                  if chunk:
-                     dld += len(chunk)
-                     dlfile.write(chunk)
-                     done = int((30 * int(dld)) / int(filesize))
-                     dldkb = getkb(dld)
-                     dldmb = getmb(dld)
-                     unit = 'b      '
-                     prog = str(round(dld,2))
-                     if dldkb > 1:
-                        unit = 'kb      '
-                        prog = str(round(dldkb,2))
-                        if dldmb > 1:
-                           unit = 'mb      '
-                           prog = str(round(dldmb,2))
-                     sys.stdout.write("\r\033[33mdownloaded: \033[36m%s %s                                          \033[0m[%s%s]\033[35m %d kbps     \033[0mtime elapsed: \033[34m%s      \033[0m\r" % (prog, unit, '\033[32m#\033[0m' * done, ' ' * (30 - done), 0.001 * (dld / ((getsecs(datetime.now()) - start) + 0.1)), (getdif(datetime.now(), start))))
-                     dlfile.flush()
-                     os.fsync(dlfile.fileno())
-                  else:
-                     break
-            elif filesize and 'text' in filetype:
-               dlfile.write(r.content)
-               dlfile.flush()
-               os.fsync(dlfile.fileno())
+               print('*** to encrypt your list in the future, run \'python encryptlist.py\'. to  base64-encode your list in the future, run \'python encodelist.py\' ***')
+      
+      # USING ENCRYPTED LIST  
+      if encryptsel.lower() == 'y':
+         secretkey = 'secret.key'
+         if os.path.isfile('secret.key'):
+            if usecolor == 'color':
+               print('base64-encoded key generated by encryptlist.py found at ' + ac.GREEN + 'secret.key' + ac.CLEAR + '.')
             else:
-               for chunk in r.iter_content(chunk_size=2048):
-                  if chunk:
-                     dld += len(chunk)
-                     dlfile.write(chunk)
-                     dlfile.flush()
-                     os.fsync(dlfile.fileno())
-                  else:
-                     break
-         print("\r\nfile %s saved! \n" % outfile)
-         endclock = getsecs(datetime.now())
-         fin = endclock - start
-         totalsecs = fin
-         if debug == 1:
-            print("\n\033[34;1mSTART: \033[35;1m %s \033[0;21m\n" % str(start))
-            print("\n\033[34;1mEND: \033[35;1m %s \033[0;21m\n" % str(endclock))
-         elapsed = "%s seconds " % str(totalsecs)
-         if totalsecs > 60:
-            totalmins = float(totalsecs / 60)
-            mins = int(totalmins)
-            if mins == 1:
-               unitmin = "minute"
+               print('base64-encoded key generated by encryptlist.py found at secret.key.')
+            keycheck = raw_input('press ENTER to use secret.key or enter the filename of your encryption key --> ')
+            if len(keycheck) > 1:
+               while not os.path.isfile(keycheck):
+                  keycheck = raw_input('file not found. please check the filename and enter again --> ')
+               secretkey = keycheck
             else:
-               unitmin = "minutes"
-            strmin = str(mins) + " " + str(unitmin)
-            secs = round(totalsecs % 60,4)
-            elapsed = str(strmin) + " " + str(secs) + " seconds"
-            if totalmins > 60:
-               totalhours = float(totalmins / 60 )
-               hours = int(totalmins / 60)
-               if hours == 1:
-                  unithr = "hour"
-               else:
-                  unithr = "hours"
-               strhr = str(hours) + " " + str(unithr)
-               mins = totalmins % 60
-               elapsed = "%s, %s mins, %s secs" % (strhr, mins, secs)
-            else:
-               hours = 0
+               secretkey = 'secret.key'
+         
          else:
-            hours = 0
-            mins = 0
-            secs = totalsecs
-            elapsed = "%s seconds" % str(secs)
-         #ended = datetime.now()
-         #print("end time: %s \n" % enddate)
-         #enddate = date.strftime(ended,"%m-%d-%Y %H:%M:%S ")
-         print("\ndownload time elapsed: %s \n" % str(elapsed))
-         time.sleep(2)
-         print('\r\n--------------------------------------------------------\r\n')
+            secretkey = raw_input('secret.key not found. please enter the filename of your encryption key --> ')
+            while not os.path.isfile(secretkey):
+               secretkey = raw_input('file not found. please check filename and enter again --> ')
 
+         encpass = getpass.getpass('please enter the secret passphrase used to generate the encrypted file --> ')
+         AES_Dec = lambda c, e: c.decrypt(base64.b64decode(e)).rstrip('&')
+         cryptfile = open(secretkey, 'r')
+         a = cryptfile.readline()
+         cryptkey = base64.b64decode(a)
+         cryptfile.close()
+
+         secretpadlen = 16 - (len(encpass) % 16)
+         secret = encpass + ('&' * secretpadlen)
+         cipher = AES.new(cryptkey, AES.MODE_CBC, secret)
+         print('using encryption key: ')
+         if usecolor == 'color':
+            print(ac.ORANGE + a + ac.CLEAR)
+         else:
+            print(a)
+      
+      print("\nusing word list: ")
+      if usecolor == 'color':
+         print(ac.OKAQUA + pwlistfile + ac.CLEAR)
       else:
-         print("\nskipped download from %s.\r\nfile has not been modified.\n" % cfurl)
+         print(pwlistfile)
       
-      getpage(cfurl)
-      cfurl = str(cfurl.strip())
-      finished.append(cfurl)
+      pf = open(pwlistfile, "r+")
+      wordlist = pf.readlines()
+      listlen = len(wordlist)
+
+      count = 0
+
+      for emailpass in wordlist:
       
+         if encryptsel.lower() == 'y':
+            emailpass = AES_Dec(cipher, emailpass)
+
+         elif b64sel.lower() == 'y':
+            emailpass = base64.b64decode(emailpass)
+                              
+         emailpass = emailpass.strip()
+         emailpass = emailpass.replace("\n","")
+         emailpass = str(emailpass)
+         loginok = checklogin(emailaddr, emailpass, imap_server, sslcon)
+         count += 1
+         
+         # WRONG PASSWORD
+         if 'AUTHEN' in loginok:
+            print("Wrong login credentials supplied for %s. Skipping to next password..." % emailaddr)
+            logging.warning('invalid password for %s. skipping to next password.' % emailaddr)
+            continue
+
+         # PASSWORD NOT CORRECTLY FORMATTED
+         elif 'BAD' in loginok:
+            emailpass = emailpass.strip()
+            print("password format error. trying again..\n")
+            logging.warning('bad password format for %s' % emailaddr)
+            loginok = checklogin(emailaddr, emailpass, imap_server, sslcon)
+            loginok = str(loginok)
+            
+            if 'OK' in loginok:
+               logging.info('INFO: LOGIN to %s successful' % emailaddr)
+               print('\nYAY! login succeeded for account %s using entry on line %d from password list file %s.\n' % (str(emailaddr), count, str(pwlistfile)))
+               showpass = raw_input('to reveal the correct, unencrypted password to authenticate the account, type SHOW. \notherwise, press ENTER to continue. \n***WARNING: THIS IS NOT SECURE AND CAN BE VIWEWED BY ANYONE WITH ACCESS TO YOUR TERMINAL OUTPUT*** --> ')
+               if showpass.lower() == 'show':
+                  if usecolor == 'color':
+                     print('\n\033[35;1maccount:\033[0m %s \n' % emailaddr)
+                     print('\n\033[32;1mpassword:\033[0m %s \n' % emailpass)
+                  else:
+                     print('\naccount: %s \n' % emailaddr)
+                     print('\npassword: %s \n' % emailpass)
+                  print('\nCLEARING SCREEN IN 3 seconds...\n')
+                  time.sleep(3)
+                  os.system('clear')
+               print('\ngetting mailbox contents...\n')
+               getimap(emailaddr, emailpass, imap_server, sslcon)
+               if usecolor == 'color':
+                  print("inbox contents have been saved to file for email: " + ac.OKAQUA + emailaddr + ac.CLEAR)
+               else:
+                  print("inbox contents have been saved to file for email: %s" % emailaddr)
+               logging.info('saved inbox contents to file for %s' % emailaddr)
+               count = 100
+               tries = -1
+               break
+
+         if 'OK' not in loginok and count <= listlen:
+            tries = -1
+            if usecolor == 'color':
+               print('\n\033[31mLOGIN FAILED. \033[34;1mtrying next entry...\033[0m\n')
+               print('\033[33mtries: \033[35m' + str(count) + '\033[33m out of \033[35m %s \033[0m' % str(listlen))
+               print('\n\033[34m------------------------------------------------------------\033[0m')
+                     
+            else:
+               print('\nLOGIN FAILED. trying next entry...\n')
+               print('tries: ' + str(count) + ' out of ' + str(listlen))
+               print('\n------------------------------------------------------------')
+            logging.warning('LOGIN FAILED for ' + emailaddr + '. tried ' + str(count) + ' entries out of ' + str(listlen) + ' total.')
+            print('\n')
+            continue
+
+         else:
+            logging.info('LOGIN to %s successful!' % emailaddr)
+            print('\nYAY! login succeeded for account %s using entry on line %d from password list file %s.\n' % (str(emailaddr),count, str(pwlistfile)))
+            showpass = raw_input('to reveal the correct, unencrypted password to authenticate the account, type SHOW. \notherwise, press ENTER to continue. \n***WARNING: THIS IS NOT SECURE AND CAN BE VIWEWED BY ANYONE WITH ACCESS TO YOUR TERMINAL OUTPUT*** --> ')
+            if showpass.lower() == 'show':
+               if usecolor == 'color':
+                  print('\n\033[35;1maccount:\033[0m %s \n' % emailaddr)
+                  print('\n\033[32;1mpassword:\033[0m %s \n' % emailpass)
+               else:
+                  print('\naccount: %s \n' % emailaddr)
+                  print('\npassword: %s \n' % emailpass)
+               print('\nCLEARING SCREEN IN 3 seconds...\n')
+               time.sleep(3)
+               os.system('clear')
+            count = 100
+            tries = -1
+            print('\ngetting mailbox contents...\n')
+
+            getimap(emailaddr, emailpass.strip(), imap_server, sslcon)
+            #homedir = os.path.expanduser("~")
+            #rootdir = os.path.join(homedir, 'email-output')
+            rootdir = savedir
+            print("inbox contents saved to directory: %s" % rootdir)
+            print("\nexiting program..\n")
+            sys.exit(0)
+            break
+
+      if count >= listlen and count < 100:
+         tries = -1
+         if usecolor == 'color':
+            print('\n\033[35mexhausted all entries in password list for:\033[33m %s.\n\033[0m' % emailaddr)
+         else:
+            print('\nexhausted all entries in password list for %s.\n' % emailaddr)
+         print('exiting program..\n')
+         sys.exit(1)
+
+   # PROMPT FOR PASSWORD
    else:
-      getpage(cfurl)
-      cfurl = str(cfurl.strip())
-      finished.append(cfurl)
-      
-   def getlinks(cfurl):
-      r = scraper.get(cfurl, stream=True, verify=False, proxies=proxystring, allow_redirects=True)
-      filetype = r.headers.get('Content-Type')
-      filetype = str(filetype)
-      html = BeautifulSoup(r.text, "html.parser")
-      if debug == 1:
-         print('\n\033[40m\033[35;1mDEBUG: \nContent-Type: %s \033[0m\n' % filetype)
-      if 'text' in filetype:
-         bs = html.prettify(formatter=None)
-         linkresult = html.findAll('a')
-         if len(linkresult) > 0:
-            n = 0
-            #lr = []
-            for link in linkresult:
-               while n < len(linkresult):
-                  linkurl = link.get('href')
-                  matchstr = r'^(\/)?%s(\/)?$' % part
-                  if not re.search(r'^(#)|((\.\.)?\/)$', linkurl) and not re.match(matchstr, linkurl):
-                     #lr.append(linkurl)
-                     print(linkurl)
-                  n += 1
-            foundlinks = len(linkresult)
-            print('\nFOUND \033[31m%s \033[0mLINKS AT \033[036m%s\033[0m:\n(hiding shortcuts and parent directories)\n' % (str(foundlinks), cfurl))
-            for link in linkresult:
-               b = link.get('href')
-               b = str(b)
-               if b not in cfurl and not re.match(r'^(\.\.)?\/$', b) and '#' not in b and 'javascript' not in str(b):
-                  print(b)
-            print('')
-         else:
-            print('\nNO LINKS FOUND.\n')
-            foundlinks = 0
-      else:
-         if  not re.search(r'^(.*)\.(jpg|mp3|avi|ogg|mp4|mov|gif|png|bmp|tif|wav|flac)$', cfurl):
-            print('\nLINKS NOT AVAILABLE FOR %s \n' % cfurl)
-         foundlinks = 0
-      time.sleep(3)
-      return foundlinks
 
-   def selectdir(geturl):
-      r = scraper.get(geturl, stream=True, verify=False, proxies=proxystring, allow_redirects=True)
-      html = BeautifulSoup(r.text, "html.parser")
-      filetype = r.headers.get('Content-Type')
-      filetype = str(filetype)
-      if debug == 1:
-         orenc = str(html.original_encoding)
-         print('\n\033[40m\033[35;1mORIGINAL ENCODING: %s \033[0m\n' % orenc)
-      findlinks = html.findAll('a')
-      dirlist = []
-      for link in findlinks:
-         b = link.get('href')
-         if not re.match(r'^((\.\.)?\/)$', str(b)) and '#' not in str(b) and 'javascript' not in str(b) and str(b) not in geturl:
-            if re.search(r'^(.*)(\/)$', str(b)):
-               dirlist.append(b)
-
-      p = urlparse(geturl)
+      emailpass = getpass.getpass('please enter password --> ')
+      prompts = 10
       
-      part = p.path.split('/')[-1]
-      path = p.path.strip(part)
-      if path == geturl:
-         geturl = geturl.rstrip('/')
-         p = urlparse(geturl)
-         part = p.path.split('/')[-1]
-         path = p.path.strip(part)
-      urlfqdn = p.scheme + '://' + p.netloc
-      loc = geturl.lstrip('https:').strip('/')
-      childdir = ''
-      dirs = filename.split('/')
-      parent = urlfqdn + childdir + path
-      if '.' not in part and len(part) > 0 and '/' in p.path and 'text' in filetype:
-         childdir = p.path
-         if '/' not in part[1:]:
-            childdir = childdir + '/'
-         parent = urlfqdn + childdir
-      if '/' not in path[:1]:
-         parent = p.geturl()
-         childdir = ''
-      else:
-         if len(part) < 1:
-            parent = p.geturl()
-            childdir = path
-         else:
-            if path == '/':
-               if re.search(r'\.([\w]{2,4})(\?|$)', part):
-                  parent = urlfqdn
-               else:
-                  parent = urlfqdn + p.path
-                  childdir = p.path
+      while prompts > 0:
+               
+         loginok = checklogin(emailaddr, emailpass, imap_server, sslcon)
+         loginok = str(loginok)
+         
+         # OTHER ERROR
+         while 'OK' not in loginok:
+            emailpass = emailpass.strip()
+            print("\nlogin to %s failed with the supplied credentials. \n" % imap_server)
+            emailpass = getpass.getpass('please enter password again --> ')
+            prompts = prompts - 1
+            loginok = checklogin(emailaddr, emailpass, imap_server, sslcon)
+            loginok = str(loginok)
+            if 'OK' in loginok:
+               logging.info('LOGIN to %s successful' % emailaddr)
+               prompts = -1
+               break
             else:
-               parent = urlfqdn + path
-               childdir = path
-      if '/' not in parent[-1:]:
-         parent = parent + '/'
-      childdir = childdir.strip('/')
-      print('\n\033[40m\033[35;1mPARENT DIRECTORY: %s \033[0m\n' % parent)
-      print('\n\033[40m\033[35;1mCHILD DIRECTORY: %s \033[0m\n' % childdir)
-      i = 0
-      dirtotal = len(dirlist)
-  
+               logging.warning('invalid password supplied for %s' % emailaddr)
+                  
+
+         else:
+            prompts = -1
+            logging.info('LOGIN to %s successful!' % emailaddr)
+            break
+      
+      if prompts == 0:
+         print('\nTOO MANY FAILED LOGIN ATTEMPTS WITH WRONG PASSWORD!\n')
+         logging.error('too many failed logins with bad password for email %s.' % emailaddr)
+         
+      elif prompts == -1:
+      
+         getimap(emailaddr, emailpass, imap_server, sslcon)
+         #homedir = os.path.expanduser("~")
+         #rootdir = os.path.join(homedir, 'email-output')
+         rootdir = savedir
+         if usecolor == 'color':
+            print("inbox contents have been saved to file for email: " + ac.OKAQUA + emailaddr + ac.CLEAR)
+         else:
+            print("inbox contents have been saved to file for email: %s" % emailaddr)
+         logging.info('saved inbox contents to file for %s' % emailaddr)
+         print("\nmailbox items can be found in directory: %s \n" % savedir)
+         
+      else:
+         print("\nLOGIN FAILED: an unknown error has occurred.\n")
+         logging.error('unknown error occurred while attempting login for %s.' % emailaddr)
+
+      print("\nexiting program..\n")
+      sys.exit(0)
+
+logging.info("exited application.")
+logging.shutdown()
+print("thanks for using EMAIL2FILE! \nexiting program..\n")
+sys.exit(0)
