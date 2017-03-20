@@ -1,15 +1,15 @@
 #!/usr/bin/env python
 #
-##### EMAIL2FILE v2.2!
+##### EMAIL2FILE v2.3!
 ##### AUTHOR: vvn < root @ nobody . ninja >
-##### VERSION RELEASE: June 26, 2016
+##### VERSION RELEASE: March 16, 2017
 ##### GPG public key: F6679EC4
-#####
+#
 ##### SAVE EMAIL LISTS AS PLAIN TEXT format in script directory with one address per line.
 ##### you can include the password, if known, as a base64-encoded string 
 ##### separated by a comma. just use "email@addy.com, encoded_password"
 ##### on each line instead. 
-
+#####
 ##### PASSWORD LISTS SHOULD BE ONE PASSWORD PER LINE.
 ##### they can also be base64-encoded or encrypted. you can either run
 ##### "python encodelist.py" to base64-encode or "python encryptlist.py" to
@@ -28,10 +28,17 @@
 ##### is entered during the decryption process, and the result will be
 ##### invalid data that is returned. do not forget your secret passphrase,
 ##### or write it down and store it in a secure location.
+#
+##### DECRYPTING GPG EMAILS WORKS NOW! YAY!
+#
+##### ALSO *FINALLY* GOT MULTIPLE FILE ATTACHMENTS WORKING! they even
+##### get saved in the proper encoding!
 #####
 ##### TO RUN SCRIPT: open terminal to script directory and enter:
 ##### "python email2file.py"
-##### PLEASE USE PYTHON 2.7.X AND NOT PYTHON 3 OR YOU WILL GET SYNTAX ERRORS!
+#
+##### **PLEASE USE PYTHON 2.7.X AND NOT PYTHON 3**
+#####   OR YOU WILL GET SYNTAX ERRORS!
 #####
 ##### works best on OSX and linux systems, but you can try it on windows.
 ##### i even went to the trouble of trying to remove ANSI color codes for you
@@ -41,6 +48,7 @@
 ##### opening a MS-DOS window as administrator and typing the following:
 #####     "pip install colorama" or "pip install ansiterm"
 ##### you can get pip by entering: "easy_install pip"
+#####
 ##### depending on the text encoding of the original email, each message
 ##### is saved as a TXT or HTM file. the files can be found in the
 ##### respective account subfolder within the 'emails' directory in
@@ -59,21 +67,27 @@
 ##### logs will be saved in the 'logs' folder inside the 'emails' directory
 ##### or the user-specified location.
 #####
-##### ****KNOWN BUGS:****
-##### socket.error "[Errno 54] Connection reset by peer"
-##### will interrupt the script execution. in case that it happens,
-##### just start the script again:
-##### python email2file.py or chmod +x *.py && ./email2file.py
-##### if you run tor and proxychains, you can run the script within proxychains:
-##### proxychains python email2file.py
+##### ****KNOWN BUGS (3/16/2017):****
+##### - socket.error "[Errno 54] Connection reset by peer"
+#####   will interrupt the script execution. in case that it happens,
+#####   just start the script again:
+#####     python email2file.py or chmod +x *.py && ./email2file.py
+##### - GPG signature verification always seems to fail, usually with
+#####   969 bytes-sized files named "signature.asc"
+##### - yes there's a lot of redundant code and message content might
+#####   get saved more than once because i wasn't sure what worked!
 #####
-##### latest release should be found on github:
-##### http://github.com/eudemonics/email2file
-##### git clone https://github.com/eudemonics/email2file.git email2file
+##### if you run tor and proxychains, you can run the script within proxychains:
+#####   proxychains python email2file.py
+#####
+##### * latest release should always be found on github:
+#####     http://github.com/eudemonics/email2file
+##### * download using terminal command:
+#####     git clone https://github.com/eudemonics/email2file.git email2file
 ##################################################
 ##################################################
 ##### USER LICENSE AGREEMENT & DISCLAIMER
-##### copyright, copyleft (C) 2014-2016  vvn < root @ nobody . ninja >
+##### copyright, copyleft (C) 2014-2017  vvn < root @ nobody . ninja >
 #####
 ##### This program is FREE software: you can use it, redistribute it and/or modify
 ##### it as you wish. Copying and distribution of this file, with or without modification,
@@ -90,6 +104,9 @@
 ##### but to really show your appreciation, you should buy my EP instead!
 ##### you can stream and purchase it at: http://dreamcorp.us
 ##### (you might even enjoy listening to it)
+##### and follow on facebook: https://facebook.com/dreamcorporation
+##### i also run a news site, SNOOZE PRESS! visit here: http://snooze.press
+#####
 ##### questions, comments, feedback, bugs, complaints, death threats, marriage proposals?
 ##### contact me at: root @ nobody [dot] ninja
 ##### there be only about two thousand lines of code after this -->
@@ -97,6 +114,7 @@
 from __future__ import print_function
 import email, base64, getpass, imaplib, threading
 from email.header import decode_header
+from email.parser import Parser
 import re, sys, os, os.path, socket, time, traceback, logging
 from subprocess import Popen
 from datetime import datetime, date
@@ -120,33 +138,36 @@ except:
 
 colorintro = '''
 \033[34m=====================================\033[33m
-----------\033[36m EMAIL2FILE v2.2 \033[33m----------
--------------------------------------
------------\033[35m author : vvn \033[33m------------
----------\033[32m root@nobody.ninja \033[33m---------
+- ---------\033[36m EMAIL2FILE v2.3 \033[33m-----------
+- -------------------------------------
+- -----------\033[35m author : vvn \033[33m------------
+- ---------\033[32m root@nobody.ninja \033[33m---------
 \033[34m=====================================\033[33m
-----\033[37m support my work: buy my EP! \033[33m----
---------\033[37m http://dreamcorp.us \033[33m--------
----\033[37m facebook.com/dreamcorporation \033[33m---
-------\033[32m thanks for the support! \033[33m------
+- ----\033[37m support my work: buy my EP! \033[33m----
+- --------\033[37m http://dreamcorp.us \033[33m--------
+- ---\033[37m facebook.com/dreamcorporation \033[33m---
+- ------\033[32m thanks for the support! \033[33m------
 \033[34m=====================================\n\033[0m
 '''
 
 cleanintro = '''
 =====================================
----------- EMAIL2FILE v2.2 ----------
--------------------------------------
------------ author : vvn ------------
---------- root@nobody.ninja ---------
+- --------- EMAIL2FILE v2.3 -----------
+- -------------------------------------
+- ----------- author : vvn ------------
+- --------- root@nobody.ninja ---------
 =====================================
----- support my work: buy my EP! ----
--------- http://dreamcorp.us --------
---- facebook.com/dreamcorporation ---
------- thanks for the support! ------
+- ---- support my work: buy my EP! ----
+- -------- http://dreamcorp.us --------
+- --- facebook.com/dreamcorporation ---
+- ------ thanks for the support! ------
 =====================================
 '''
 
 global usecolor
+global emailaddr
+global imap_server
+global completed
 
 if os.name == 'nt' or sys.platform == 'win32':
    try:
@@ -222,12 +243,12 @@ while not re.search(r'^[nyNY]$', changedir):
    changedir = raw_input('invalid entry. enter Y to change save directory or N to use default --> ')
 
 print('')
-
 homedir = os.path.expanduser("~")
 gpgdir = os.path.join(homedir, '.gnupg')
 cwd = os.getcwd()
 outputdir = 'emails'
 savedir = os.path.join(cwd, outputdir)
+completed = []
 
 if changedir.lower() == 'y':
    savedir = raw_input('please enter the full path of where to save inbox contents --> ')
@@ -262,7 +283,7 @@ usesslcheck = raw_input('use SSL? Y/N --> ')
 while not re.search(r'^[nyNY]$', usesslcheck):
    usesslcheck = raw_input('invalid selection. please enter Y for SSL or N for unencrypted connection. -->')
 
-print('\n')
+print('')
 
 sslcon = 'yes'
 
@@ -271,6 +292,32 @@ if usesslcheck.lower() == 'n':
 
 else:
    sslcon = 'yes'
+
+print('')
+
+passprompt = 0
+
+if usewordlist.lower() == 'y':
+   
+   print('''
+prompt with option to reveal correct password in terminal
+after successful login?
+%s**entering Y will pause the program to wait for user input!** \033[0m
+%s**enter N to let the script run without interruptions**\033[0m
+''' % (ac.OKPINK, ac.BLUEBOLD))
+
+   showpasscheck = raw_input('please enter Y/N --> ')
+   
+   while not re.search(r'^[nyNY]$', showpasscheck):
+      showpasscheck = raw_input('invalid entry. please enter Y to ask if you want the correct password revealed upon successful login, or N to let the script run uninterrupted --> ')
+
+   if showpasscheck.lower() == 'y':
+      passprompt = 1
+
+   else:
+      passprompt = 0
+
+   print('')
    
 # FUNCTION TO RESOLVE IMAP SERVER
 def resolveimap(imap_server):
@@ -326,6 +373,9 @@ def resolveimap(imap_server):
 def checklogin(emailaddr, emailpass, imap_server, sslcon):
 
    global checkresp
+   
+   loginstatus = 'BAD'
+   
    efmatch = re.search(r'^[_a-zA-Z0-9-]+(\.[_a-zA-Z0-9-]+)*@[a-zA-Z0-9-]+(\.[a-zA-Z0-9-]+)*(\.[a-zA-Z]{2,15})$', emailaddr)
    while not efmatch:
       emailaddr = raw_input('invalid email format. enter a valid email address --> ')
@@ -493,12 +543,12 @@ def checklogin(emailaddr, emailpass, imap_server, sslcon):
 # FUNCTION TO CHECK FOR EMAIL FORMAT ERRORS BEFORE SUBMITTING TO SERVER
 def checkformat(emailaddr):
 
-   emailformat = 'unchecked'
+   emailformat = "unchecked"
 
-   match = re.search(r'^[_a-zA-Z0-9-]+(\.[_a-zA-Z0-9-]+)*@[a-zA-Z0-9-]+(\.[a-zA-Z0-9-]+)*(\.[a-zA-Z]{2,15})$', emailaddr)
+   match = re.search(r'^[_a-zA-Z0-9-]+(\.[_a-zA-Z0-9-]+)*@[a-zA-Z0-9-]+(\.[a-zA-Z0-9-]+)*(\.[a-zA-Z]{2,16})$', emailaddr)
 
    if not match:
-      emailformat = 'bad'
+      emailformat = "bad"
       logging.warning('bad email address format for entry: %s' % str(emailaddr))
       if usecolor == 'color':
          print('\033[31minvalid email format \033[0m\n')
@@ -506,49 +556,267 @@ def checkformat(emailaddr):
          print('invalid email format')
    
    else:
-      emailformat = 'good'
+      emailformat = "good"
       logging.info('email address is valid: %s' % emailaddr)
       if usecolor == 'color':
-         print('\033[36memail address is valid \033[0m\n')
+         print('\n\033[36memail address is valid \033[0m\n')
       else:
-         print('email address is valid')
+         print('\nemail address is valid\n')
    
    return emailformat
 # END OF FUNCTION checkformat()
 
-# FUNCTION TO DECODE EMAIL BODY AND ATTACHMENTS
-def decode_email(msgbody):
-
-   msg = email.message_from_string(msgbody)
-
-   if msg is None:
-      decoded = msg
-
+# FUNCTION TO PARSE MULTIPART EMAIL PAYLOAD
+def decode_email(msg):
+ 
    text = ""
    att = False
    html = None
+   pars = msg.get_payload()
+   pars = str(msg)
+   msgdir = dir(msg)
+   parsdir = dir(pars)
+   msgwalk = msg.walk()
 
-   if not msg.is_multipart():
-      decoded = msg
+   if type(msg) is str:
+      parsed = msg
+      #print('\n***DEBUG: returning msg as parsed\n')
+      logging.info('returned msg as parsed')
+      return parsed # nothing more to parse
+   
+   elif msg.get_payload() is None:
+      #print('\n***DEBUG: returning msg as NoneType\n')
+      logging.info('returned msg as NoneType')
+      return msg
    
    else:
-      
+   
       decoded = msg.get_payload()
+      
+      if decoded is None:
+         logging.info('returned decoded as NoneType')
+         return msg
          
+      msgfrom = ''
+      mdate = ''
+      msgto = ''
+      msgsubject = ''
+      
+      if msg['From']:
+         msgfrom = msg['From']
+         msgfrom = msgfrom.replace('/', '-')
+         msgfrom = msgfrom.replace('<', ' ')
+         msgfrom = msgfrom.replace('>', '')
+      
       mdate = msg['Date']
-      mdate = str(mdate)[:10]
       
-      for part in msg.get_payload():
+      msgto = completed[-1]
       
-         charset = part.get_content_charset()
+      if msgto:
+         print('completed email: %s \n' % str(msgto))
+      else:
+         msgto = msg['Envelope-to']
+         print('env to: %s \n' % str(msgto))
+      
+      msgid = msg['Email-id']
+      
+      if msgto is None:
+         msgto = msg['To']
+         print('msg to: %s \n' % str(msgto))
+         if msgto is None:
+            msgto = msg['Cc']
+            print('msg cc: %s \n' % str(msgto))
+            if msgto is None:
+               msgto = msg['Bcc']
+               print('msg bcc: %s \n' % str(msgto))
+            
+      msgto = msgto.replace('/', '-')
+      msgto = msgto.replace('<', ' ')
+      msgto = msgto.replace('>', '')
+      
+      msgto = str(msgto)
+         
+      msgdate = mdate[5:][:11]
+
+      if msg['Subject']:
+         msgsubject = msg['Subject'].replace('/', '-')
+      else:
+         msgsubject = 'No Subject'
+      rootdir = savedir
+      atdomain = re.search("@.*", msgto).group()
+      emaildomain = str(atdomain[1:])
+      j = len(msgto) - len(atdomain)
+      user_save = msgto[:j]
+
+      subdir =  user_save + "_" + emaildomain
+      save_path = os.path.join(rootdir, subdir)
+
+      if not os.path.exists(save_path):
+         os.makedirs(save_path)
+      
+      att_dir = os.path.join(save_path, 'attachments')
+      if not os.path.exists(att_dir):
+         os.makedirs(att_dir)
+      
+      #print('\nDEBUG: returning decoded as text \n')
+      decoded = msg.get_payload()	
+      
+      content_type = msg.get_content_type()
+      
+      multitypes = ['multipart', 'alternative', 'application', 'related']
+      
+      charset = msg.get_content_charset()
+      
+      print("\033[32mContent-Type: %s \nCharset: %s \n\033[0m" % (content_type, charset))
+      
+      # plain text format
+      if content_type == 'text/plain':
+         decoded = unicode(msg.get_payload(decode=True), str(charset), "ignore").encode('utf8', 'replace').strip()
+         enc = msg['Content-Transfer-Encoding']
+         if enc == "base64":
+            decoded = msg.get_payload()
+            decoded = base64.decodestring(decoded)
+
+      # rich text/html format
+      elif content_type == 'text/html':
+         decoded = unicode(msg.get_payload(decode=True), str(charset), "ignore").encode('utf8', 'replace').strip()
+      
+      if any(x in content_type for x in multitypes):
+         #print("\033[35m***DEBUG*** \n\033[33mLINE 607: MULTITYPE: %s \n\033[0m" % content_type)
+         att = True
+         n = 0
+         lim = len(decoded) - 1
+         attfile = msg.get_filename()
+         attachment = msg.get_payload(decode=True)
+         if attfile is None:
+            attfile = decoded[n].get_filename()
+            attachment = decoded[n].get_payload()
+            att_contype = decoded[n].get_content_type()
+         else:
+            att_contype = msg.get_content_type()
+         #print("***DEBUG*** \n\033[36mLINE 616 \n\033[31mLIMIT: %d \033[0m \nATTACHMENT FILE: %s \n\n" % (lim, attfile))
+         
+         while attfile is None and n < lim:
+            n += 1
+            attfile = decoded[n].get_filename()
+            #print("***DEBUG*** \nDECODED ATTACHMENT FILE #%d: %s \n\n" % (n, attfile))
+            attachment = decoded[n].get_payload()
+            att_contype = decoded[n].get_content_type()
+            if 'multipart' in att_contype:
+               for att in attachment:
+                  att_data = att.get_payload(decode=True)
+                  att_type = att.get_content_type()
+                  if 'plain' in att_type:
+                     att_name = msgfrom + '-' + msgsubject + '.txt'
+                     att_name = os.path.join(save_path, str(att_name))
+                  elif 'html' in att_type:
+                     att_name = msgfrom + '-' + msgsubject + '.html'
+                     att_name = os.path.join(save_path, str(att_name))
+                  else: 
+                     att_name = att.get_filename()
+                     att_name = os.path.join(att_dir, str(att_name))
+                  filename = att_name
+                  if not os.path.isfile(filename):
+                     try:
+                        writedata = open(filename, 'wb+')
+                        writedata.write(att_data)
+                        writedata.close()
+                        print('\nsaved attachment (try #1): %s \n' % filename)
+                        logging.info('saved attachment: %s' % filename)
+                     except:
+                        pass
+                        try:
+                           writedata = open(filename, 'wb+')
+                           writedata.write(att.get_payload())
+                           writedata.close()
+                           print('\nsaved attachment (try #2): %s \n' % filename)
+                           logging.info('saved attachment: %s' % filename)
+                        except e:
+                           print('\nan error has occurred: %s \n' % str(e))
+                           logging.error('an error occurred while trying to write file %s: %s' % (filename, str(e)))  
+         
+            else:
+               if 'html' in att_contype:
+                  att_name = msgid + '-' + msgfrom + '-' + msgsubject + '.html'
+                  att_dir = save_path
+               elif 'plain' in att_contype:
+                  att_name = msgid + '-' + msgfrom + '-' + msgsubject + '.txt'
+                  att_dir = save_path
+               else:
+                  att_name = msgid + '-' + msgfrom + '-' + msgsubject + '-' + attfile
+               filename = os.path.join(att_dir, str(att_name))
+               if not os.path.isfile(filename):
+                  try:
+                     writedata = open(filename, 'wb+')
+                     writedata.write(attachment)
+                     writedata.close()
+                     print('\n\033[31m**attachment saved to file successfully*** \033[0m \nFILE LOCATION: %s \n' % filename)
+                     logging.info('saved attachment: %s' % filename)
+                  except:
+                     pass
+                     print('\n***skipped exception, MOVING ON.. \n')
+                     logging.warning('passed exception trying to save %s. trying again..' % filename)
+                     try:
+                        writedata = open(filename, 'wb+')
+                        writedata.write(attachment.get_payload())
+                        writedata.close()
+                        print('\nsaved attachment: %s \n' % filename)
+                        logging.info('saved attachment: %s' % filename)
+                     except e:
+                        print('\nan error has occurred: %s \n' % str(e))
+                        logging.error('an error occurred while trying to write file %s: %s' % (filename, str(e)))   
+         
+         if attfile is None:
+            filename = msgid + '-' + msgfrom + '-' + msgsubject + '.htm'
+            att_dir = save_path
+         else:
+            filename = msgid + '-' + str(attfile)
+      
+         filename = os.path.join(att_dir, filename)
+         
+         if not os.path.isfile(filename):
+            try:
+               writedata = open(filename, 'wb+')
+               writedata.write(attachment)
+               writedata.close()
+               print('\nsaved attachment: %s \n' % filename)
+               logging.info('saved attachment: %s' % filename)
+            except:
+               pass
+               try:
+                  writedata = open(filename, 'wb+')
+                  writedata.write(attachment.get_payload(decode=True))
+                  writedata.close()
+                  #print('\n***DEBUG*** \nLINE 788: \nsaved attachment: %s \n' % filename)
+                  logging.info('saved attachment: %s' % filename)
+               except:
+                  pass
+                  logging.error('an error occurred while trying to write file %s' % filename)
+         else:
+            
+            if usecolor == 'color':
+               print('\n\033[33m' + filename + '\033[0m already exists, skipping.. \n')
+            else:
+               print('\n' + filename + ' already exists, skipping.. \n')
+            logging.info('skipping existing file: %s' % filename)
+      
+      else:
+         return decoded
+         
+      for part in decoded:
+         
          filename = part.get_filename()
-
-         print("\033[31mContent-Type: %s \nCharset: %s \n\033[0m" % (part.get_content_type(), charset))
-
-         if charset is None:
+         
+         # get content type and character set
+         contype = part.get_content_type()
+         charset = part.get_content_charset()
+         print("\033[31mContent-Type: %s \nCharset: %s \n\033[0m" % (contype, charset))
+         
+         if charset is None: # probably a file attachment theni
             text = part.get_payload(decode=True)
             continue
-
+         
+         # plain text format
          if part.get_content_type() == 'text/plain':
             text = unicode(part.get_payload(decode=True), str(charset), "ignore").encode('utf8', 'replace').strip()
             enc = part['Content-Transfer-Encoding']
@@ -556,172 +824,259 @@ def decode_email(msgbody):
                text = part.get_payload()
                text = base64.decodestring(text)
 
+         # rich text/html format
          elif part.get_content_type() == 'text/html':
             html = unicode(part.get_payload(decode=True), str(charset), "ignore").encode('utf8', 'replace').strip()
 
          elif part.get('Content-Disposition') is None:
             continue
-
-         elif "multipart" in part.get_content_type():
-            text = part.get_payload(decode=True)
-            enc = part['Content-Transfer-Encoding']
-                     
-            attachment = part.get_payload(1)
-            filename = str(mdate) + ' - ' + part.get_filename()
-            if part.get_content_type() == "text/plain":
-               text = part.get_payload()
-               if enc == "base64":
-                  text = base64.decodestring(text)
-            else:
-               html = unicode(part.get_payload(decode=True), str(charset), "ignore").encode('utf8', 'replace').strip()
-                  
-         if 'use_gpg' not in locals() and part.get_content_type() == 'multipart/encrypted':
-            use_gpg = 0
-            if use_gpg == 0:
-               if os.path.exists(gpgdir):
-                  check_gpg = raw_input('would you like to decrypt messages encrypted with your GnuPG keyring? Y/N --> ')
-                  while not re.match(r'^[yYnN]$', check_gpg):
-                     check_gpg = raw_input('invalid entry. enter Y or N to decrypt messages --> ')
-                  if check_gpg.lower() == 'y':
-                     use_gpg = 1
-                  else:
-                     use_gpg = 0
          
-         else:
-            use_gpg = 0
-         
-         if filename:
-
-            #homedir = os.path.expanduser("~")
-            rootdir = savedir
-            
-            if not os.path.exists(rootdir):
-               os.makedirs(rootdir, 0755)
-
-            atdomain = re.search("@.*", emailaddr).group()
-            emaildomain = atdomain[1:]
-            i = len(emailaddr) - len(atdomain)
-            user_savename = emailaddr[:i]
-            # user_savename = emailaddr.rstrip(atdomain)
-            subdir = user_savename+"_"+emaildomain
-
-            detach_dir = os.path.join(rootdir, subdir)
-
-            if not os.path.exists(detach_dir):
-               os.makedirs(detach_dir, 0755)
-            
-            att_dir = os.path.join(detach_dir, att_dir)
-            if not os.path.exists(att_dir):
-               os.makedirs(att_dir)
-
-            att_path = os.path.join(att_dir, filename)
-
+         # p7s signature
+         elif part.get_content_type() == 'application/pkcs7-signature':
             att = True
-         
-         if 'multipart' in part.get_content_type():
-            n = 0
-            print('\n***DEBUG*** \npart.values():\n')
-            while n < len(part.values()):
-               for i in part.values():
-                  print(' \033[33m ' + str(n) + ' \033[37m ' + str(i) + '\033[0m\n')
-                  n += 1
-            continue
-            print('\n***DEBUG*** \n\nDIR: part.get_payload() \n')
-            for d in dir(part.get_payload()):
-               print(str(d))
-                        
-         if use_gpg == 1:
-            #crypt = unicode(part.get_payload(decode=True), str(charset), "ignore").encode('utf8', 'replace').strip()
-            cryptpayload = part.get_payload()
-            a = 0
-            for cryptmess in part.get_payload(0):
-               print('\n***DEBUG*** \ninstances in part.get_payload(0)
-               print(str(cryptmess))
-               print('\n')
-               print(dir(cryptmess))
-               print('\n')
-               
-            for crypt in cryptpayload:
-            #while crypt:
-               
-               print('\na = %d \n' % a)
-               try:  
-                  filename = a + '-' + filename
-                  att_path = os.path.join(att_dir, filename)
-            
-                  acrypt = crypt.get_payload(decode=True)
-                  gpg = gnupg.GPG(gnupghome=gpgdir, use_agent=True)
-                  attdec = gpg.decrypt(base64.decodestring(acrypt), always_trust=True)
-
-                  if "encrypted" in part.get_content_type():
-                     if not os.path.isfile(att_path):
-                        attfile = open(att_path, 'wb+')
-                        attfile.write(acrypt)
-                        attfile.close()
-                        logging.info('saved encrypted file: %s' % att_path)
-                        if usecolor == 'color':
-                           print('\n\033[36msaved encrypted file: \033[32m%s \033[0m\n' % att_path)
-                        else:
-                           print('\nsaved encrypted file: %s \n' % att_path)
-                     else:
-                        if usecolor == 'color':
-                           print('\n\033[35m%s \033[0malready exists, skipping..\n' % att_path)
-                        else:
-                           print('\n%s already exists, skipping..\n' % att_path)
-               
-               except:
-                  pass
-                  break   
-               
-               a += 1
-               #crypt = part.get_payload(a)
-            
+            sigdata = part.get_payload(decode=True)
+            if sigdata is None:
+               sigdata = part.get_payload()
+            signame = 'sig.p7s'
+            if part.get_filename() is None:
+               signame = msgfrom + '-' + msgsubject + '-' + msgdate + '.p7s'
             else:
-               if not os.path.isfile(att_path):
-                  attfile = open(att_path, 'wb+')
-                  a = 0
-                  pl = part.get_payload(a)
-                  while pl:
+               signame = msgfrom + '-' + msgdate + '-' + part.get_filename()
+            att_path = os.path.join(att_dir, signame)
+            sigfile = open(att_path, 'wb+')
+            sigfile.write(sigdata)
+            sigfile.close()
+            logging.info('saved signature file: %s' % signame)
+            print('saved signature file to disk: %s' % signame)
+            
+         
+         # message contains attachments
+         elif any(x in part.get_content_type() for x in multitypes):
+            att = True
+            # text of message
+            a = part.get_payload(0)
+            # attachments
+            b = part.get_payload(1)
+            
+            # plain text message
+            if a.get_content_type() == 'text/plain':
+               text = a
+               if a['Content-Transfer-Encoding'] == 'base64':
+                  text = a.get_payload()
+                  text = base64.decodestring(text)
+            # html or rich-text format
+            elif a.get_content_type() == 'text/html':
+               html = unicode(a.get_payload(decode=True), str(charset), "ignore").encode('utf8', 'replace').strip()
+               
+            # attachments
+            if part.get_filename() is not None:
+               file_name = part.get_filename()
+               complete_name = os.path.join(att_dir, file_name)
+               if not os.path.isfile(complete_name):
+                  try:
+                     attachment = part.get_payload()
+                     partdata = open(complete_name, 'wb+')
+                     partdata.write(attachment)
+                     partdata.close()
+                     print('\nsaved attachment: %s \n' % complete_name)
+                     logging.info('saved attachment: %s' % complete_name)
+                  except:
+                     pass
                      try:
-                        attfile.write(pl.get_payload(decode=True))
-                        attfile.close()
-                        logging.info('saved attachment to file: %s' % att_path)
-                        if usecolor == 'color':
-                           print('\n\033[36msaved attachment to file: \033[32m%s \033[0m\n' % att_path)
-                        else:
-                           print('\nsaved attachment to file: %s \n' % att_path)
+                        attachment = part.get_payload(decode=True)
+                        partdata = open(complete_name, 'wb+')
+                        partdata.write(attachment)
+                        partata.close()
+                        print('\nsaved attachment: %s \n' % complete_name)
+                        logging.info('saved attachment: %s' % complete_name)
+                     except e:
+                        pass
+                        print('\nan error has occurred while trying to save attachment %s: %s \n' % (complete_name,str(e)))
+                        logging.error('an error occurred while trying to save attachment %s: %s' % (complete_name,str(e)))
+               
+            elif "multipart" or "application" in b.get_content_type():
+               for bsub in b.get_payload():
+                  bnext = bsub.get_payload(decode=True)
+                  attachment = bnext
+                  bname = bsub.get_filename()
+                  
+                  if bname is None:
+                     text = bnext
+                     btype = bsub.get_content_type()
+                     print('\nbtype:\n%s \n' % btype)
+                     print('\ntext:\n%s \n' % text)
+                     bname = msgfrom + '-' + msgsubject + '-' + msgdate + '.txt'
+                  else:
+                     bname = msgfrom + '-' + msgdate + '-' + bname
+                  
+                  bfilename = os.path.join(att_dir, bname)
+                     
+                  if bnext is None: # possibly more attachments within
+                     try:
+                        attachment = decode_email(bsub)
+                        bdata = open(bfilename, 'wb+')
+                        bdata.write(attachment)
+                        bdata.close()
+                        print('\nsaved attachment: %s \n' % bname)
+                        logging.info('saved attachment: %s' % bname)
                      except:
                         pass
-                        break
-                     
-                     a += 1
-                     pl = part.get_payload(a)
-                     
-               else:
-                  if usecolor == 'color':
-                     print('\n\033[35m%s \033[0malready exists, skipping..\n' % att_path)
+                        try:
+                           attachment = bsub
+                           bdata = open(bfilename, 'wb+')
+                           bdata.write(attachment)
+                           bdata.close()
+                           print('\nsaved attachment: %s \n' % bname)
+                           logging.info('saved attachment: %s' % bname)
+                        except e:
+                           print('\nan error has occurred: %s \n' % str(e))
+                           logging.error('an error has occurred: %s' % str(e))
                   else:
-                     print('\n%s already exists, skipping..\n' % att_path)
-            
-            decoded = attfile
+                     try:
+                        bdata = open(bfilename, 'wb+')
+                        bdata.write(bnext)
+                        bdata.close()
+                        print('\nsaved attachment: %s \n' % bname)
+                        logging.info('saved attachment: %s' % bname)
+                        attachment = bnext
+                     except e:
+                        pass
+                        print('\nan error has occurred: %s \n' % str(e))
+                        logging.error('an error has occurred: %s' % str(e))
 
+            else:
+               text = part.get_payload(decode=True)
+               continue 
+                                   
+         # PGP encrypted message or attachment      
+         elif part.get_content_type() == 'application/pgp-encrypted' or part.get_content_type() == 'application/octet-stream':
+            att = True
+            text = part.get_payload(decode=True)
+            for crypt in part.get_payload():
+               if type(crypt) is str:
+                  text = crypt
+                  att = False
+                  continue
+               else:
+                  enc = crypt['Content-Transfer-Encoding']
+                  if crypt.get_content_type() == 'text/plain':
+                     text = crypt.get_payload()
+                     if 'base6s4' in enc:
+                        text = base64.decodestring(text)
+                        att = False
+                        continue
+                  elif crypt.get_content_type() == 'text/html':
+                     html = unicode(crypt.get_payload(decode=True), str(charset), "ignore").encode('utf8', 'replace').strip()
+                  else:
+                     att = True
+                     cryptdata = crypt.get_payload(decode=True) 
+                     attachment = cryptdata
+                     cryptname = crypt.get_filename()
+                     if cryptname is None:
+                        cryptname = msgfrom + ' - ' + msgsubject + ' - ' + '.gpg'
+                     else:
+                        cryptname = msgfrom + ' - ' + msgsubject + ' - ' + cryptname
+                     att_path = os.path.join(att_dir, cryptname)
+                     try:
+                        if not os.path.exists(att_path):
+                           cryptfile = open(att_path, 'wb+')
+                           cryptfile.write(cryptdata)
+                           cryptfile.close()
+                           attfile = cryptfile
+                           print('\n**********\nsaved attachment: %s \n' % cryptname)
+                           logging.info('saved attachment: %s' % cryptname)
+                        else:
+                           cryptfile = open(att_path, 'rb+')
+                           cryptdata = cryptfile.read()
+                           print('\n%s exists, skipping... \n' % cryptname)
+                           logging.info('%s exists, skipped..' % cryptname)
+      
+                     except e:
+                        pass
+                        print('\nan error has occurred: %s \n' % str(e))
+                        logging.error('an error has occurred: %s' % str(e))
+                        
+            if 'use_gpg' not in locals():
+               use_gpg = 0
+               if use_gpg == 0:
+                  if os.path.exists(gpgdir):
+                     check_gpg = raw_input('would you like to decrypt messages encrypted with your GnuPG keyring? Y/N --> ')
+                     while not re.match(r'^[yYnN]$', check_gpg):
+                        check_gpg = raw_input('invalid entry. enter Y or N to decrypt messages --> ')
+                     if check_gpg.lower() == 'y':
+                        use_gpg = 1
+                        logging.info('GPG decryption enabled')
+                     else:
+                        use_gpg = 0
+                        logging.info('GPG decryption disabled')
+               
+            if use_gpg == 1:
+               if 'application/octet-stream' in part.get_content_type():
+                  crypt = part.get_payload(1)
+                  print('\n***DOWNLOADING ENCRYPTED ATTACHMENTS*** \n')
+                  gpg = gnupg.GPG(gnupghome=gpgdir, use_agent=True)
+                  for ac in crypt:
+                     acname = ac.get_filename()
+                     decext = acname[-4:]
+                     decfile = acname[:-4] + '-dec' + decext
+                     decfilealt = acname[:-4] + '-decalt' + decext
+                     decpath = os.path.join(att_dir, decfile)
+                     decpathalt = os.path.join(att_dir, decfilealt)
+                     print(decfile)
+                     acdata = ac.get_payload(decode=True)
+                     ec = gpg.decrypt(base64.decodestring(ac), always_trust=True, output=decpath)
+                     ecdata = gpg.decrypt(base64.decodestring(acdata), always_trust=True, output=decpathalt)
+                     logging.info('saved decrypted GPG data as: %s' % decfile)
+                     print(ec)
+                     print('\n')
+                     raw_input('729 ec - press ENTER')
+                     print(ecdata)
+                     print('\n')
+                     raw_input('732 ecdata - press ENTER')
+                     attachment = acdata 
+                     
+                     if "multipart" or "alternative" in ac.get_content_type():
+                        attachment = decode_email(ac)
+                  
+               elif 'pgp-encrypted' in part.get_content_type():
+                  cryptmsg = part.get_payload(decode=True)
+                  gpg = gnupg.GPG(gnupghome=gpgdir, use_agent=True)
+                  decfile = part.get_filename()
+                  if decfile is None:
+                     decfile = mdate + '-' + msgfrom + '-' + msgsubject + '-dec.txt'
+                  else:
+                     dname = part.get_filename()
+                     decext = dname[-4:]
+                     decfile = dname[:-4] + '-dec' + decext
+                     decpath = os.path.join(att_dir, decfile)
+                     decrypted = gpg.decrypt(base64.decodestring(cryptmsg), always_trust=True, output=decpath)
+                  print(decrypted)
+                  raw_input('press ENTER to continue')
+                  att = True
+                  attachment = cryptmsg
+               
+               else:              
+                  continue
+      
       if att is False:
-         decoded = msg
+         decoded = msg.get_payload(decode=True)
 
          if html is None and text is not None:
             decoded = text.strip()
-
          elif html is None and text is None:
             decoded = msg
-
          else:
             decoded = html.strip()
-
-   return decoded
-# END OF FUNCTION decode_email()
+      
+      else:
+         decoded = attachment
+   
+      return decoded                  
+         
+# END FUNCTION decode_email(msg)
 
 # FUNCTION TO LOG ONTO IMAP SERVER AND GET EMAIL
-def getimap(emailaddr, emailpass, imap_server, sslcon, folder):
+def getimap(emailaddr, emailpass, imap_server, sslcon):
 
    imap_port = 993
    server = imaplib.IMAP4_SSL(imap_server, imap_port)
@@ -733,7 +1088,9 @@ def getimap(emailaddr, emailpass, imap_server, sslcon, folder):
    if 'gmail.com' in emailaddr and 'no' in sslcon:
       imap_port = 587
 
-   attempts = 20  
+   attempts = 20
+   
+   completed.append(emailaddr)
 
    while True and attempts > 0:
 
@@ -743,7 +1100,7 @@ def getimap(emailaddr, emailpass, imap_server, sslcon, folder):
 
          if loginstatus == 'OK':
 
-            select_info = server.select(folder)
+            select_info = server.select('INBOX')
             status, unseen = server.search(None, 'UNSEEN')
             typ, listdata = server.list()
             countunseen = len(unseen)
@@ -756,7 +1113,7 @@ def getimap(emailaddr, emailpass, imap_server, sslcon, folder):
                print('\033[0m\nFOLDERS:\n\033[33m')
                for l in listdata:
                   print(str(l), '\n')
-               print('\033[34m\nlogin successful, fetching emails in %s.. \033[0m\n' % folder)
+               print('\033[34m\nlogin successful, fetching emails.. \033[0m\n')
 
             else:
 
@@ -766,10 +1123,10 @@ def getimap(emailaddr, emailpass, imap_server, sslcon, folder):
                print('\nFOLDERS:\n')
                for l in listdata:
                   print(str(l), '\n')
-               print('\nlogin successful, fetching emails in %s.. \n' % folder)
+               print('\nlogin successful, fetching emails.. \n')
 
             logging.info('LOGIN successful for %s.' % emailaddr)
-            logging.info('%d unread messages in %s.' % (countunseen, folder))
+            logging.info('%d unread messages in inbox' % countunseen)
             logging.info('fetching all messages...')
 
             # server.list()
@@ -885,8 +1242,19 @@ def getimap(emailaddr, emailpass, imap_server, sslcon, folder):
                msgfrom = msgfrom.encode('utf-8')
                msgfrom = msgfrom[:35].strip()
                
-               body = decode_email(rawbody)
-
+               if not m.is_multipart():
+                  print('\n\033[36m**MSG IS NOT MULTIPART** \n')
+                  body = m
+                  
+               elif m is None:
+                  body = decode_email(m.get_payload(1))
+               
+               else: # multipart message
+                  body = decode_email(m)
+               
+               # pad with 0's up to 3 digits
+               emailid = str(email_uid).zfill(3)
+               
                atdomain = re.search("@.*", emailaddr).group()
                emaildomain = atdomain[1:]
                j = len(emailaddr) - len(atdomain)
@@ -900,95 +1268,66 @@ def getimap(emailaddr, emailpass, imap_server, sslcon, folder):
 
                mbody = email.message_from_string(rawbody)
                
+               isattach = False
+               ext = ".htm"
+               
                if mbody.is_multipart():
 
                   ext = ".txt"
-                  z = 0
 
                   for mpart in mbody.get_payload():
-                  
-                     file_name = mpart.get_filename()
 
                      if 'text' in mpart.get_content_type():
                         ext = ".txt"
                         isattach = False
+                        att_path = save_path
 
                         if mpart.get_content_type() == 'text/html':
                            ext = ".htm"
                            isattach = False
-
-                     elif 'encrypted' in mpart.get_content_type():
-                        ext = ".asc"
-                        isattach = True
-                        
-                     elif 'pgp-signature' in mpart.get_content_type():
-                        ext = ".sig.asc"
-                        isattach = True
-                        
-                     elif 'pkcs7-signature' in mpart.get_content_type():
-                        ext = ".p7s"
-                        isattach = True
+                           att_path = save_path
                      
-                     elif 'octet-stream' in mpart.get_content_type():
-                        ext = ".gpg"
-                        isattach = True
-                     
-                     else:
+                     else:                     
                         file_name = mpart.get_filename()
-                        isattach = True
-                        if file_name is None:
+
+                        if 'encrypted' in mpart.get_content_type():
+                           ext = ".asc"
+                           isattach = True
+                        
+                        elif 'pgp-signature' in mpart.get_content_type():
+                           ext = ".sig.asc"
+                           isattach = True
+                        
+                        elif 'pkcs7-signature' in mpart.get_content_type():
+                           ext = ".p7s"
+                           isattach = True
+                     
+                        elif 'octet-stream' in mpart.get_content_type():
+                           ext = ".gpg"
+                           isattach = True
                            
-                           ext = ".htm"
-                           isattach = False
-                        
+                        elif 'multipart' or 'alternative' in mpart.get_content_type():
+                           isattach = True
+                     
                         else:
-                           file_name = str(file_name)
-                     
-                     if not file_name:
-                        file_name = msgfrom + "--" + msgsubject + '_' + ext
-                        file_name = str(file_name)
+                           isattach = True
                         
-                     file_name = str(email_uid) + ' - ' + str(z) + ' - ' + str(file_name)
-                     att_path = os.path.join(str(save_path), 'attachments')
-                     complete_name = os.path.join(str(att_path), str(file_name))
-                     if usecolor == 'color':
-                        print(ac.OKAQUA + '\n***SAVING ATTACHMENT: ' + ac.OKPINK +  str(file_name) + ac.CLEAR + '\n')
-                     else:
-                        print('\n***SAVING ATTACHMENT: %s \n' % str(file_name))
-                     bodyfile = open(complete_name, 'wb+')
-                     
-                     bodyfile.seek(0)
-                     pl = str(mpart.get_payload())
-                     bodyfile.write(pl)
-                     bodyfile.close()
-                     print('\n**************************************************\n')
-                     print('\nz = %d \n' % z)
-                     print('\n***mpart.get_payload(): \n%s \n' % pl)
-                     print('\n**************************************************\n')
-                     z += 1
-               
+                        file_name = str(emailid) + ' - ' + str(file_name)
+
                else:
                   isattach = False
+                  att_path = save_path
                   ext = ".txt"
-                  body = decode_email(mbody.get_payload())
-               
-               # pad with 0's up to 4 digits
-               emailid = str(email_uid).zfill(4)
-               
-               print('\n')
                
                if isattach is True:
                   att_path = os.path.join(save_path, 'attachments')
                   att_path = str(att_path)
                   if not os.path.exists(att_path):
                      os.makedirs(att_path)
-                  file_name = mpart.get_filename()
-                  if not file_name:
-                     file_name = emailid + "-" + msgfrom + "--" + msgsubject + ext
-                     file_name = str(file_name)
-                  else:
-                     file_name = emailid + '-' + str(file_name)
                   if ext in (".asc", ".gpg", ".sig", ".sig.asc", ".p7s"):
+                     if not file_name:
+                        file_name = emailid + "-" + msgfrom + "--" + msgsubject + ext
+                     file_name = str(file_name)
                      if 'use_gpg' not in locals():
                         use_gpg = 0
                         if use_gpg == 0:
@@ -1005,10 +1344,7 @@ def getimap(emailaddr, emailpass, imap_server, sslcon, folder):
                            print('\n')
                   
                else:
-                  if isattach is False and ext == ".txt" or ext == ".htm":
-                     file_name = emailid + "-" + msgfrom + " - " +  msgsubject[:35] + ext
-                  if not file_name or file_name is "None":
-                     file_name = emailid + "-" + msgfrom + " - " + msgsubject[:35] + ext
+                  file_name = emailid + "-" + msgfrom + " - " + msgsubject[:35] + ext
                   file_name = str(file_name)
                   att_path = str(save_path)
                
@@ -1018,7 +1354,7 @@ def getimap(emailaddr, emailpass, imap_server, sslcon, folder):
                dtdate = str(date.strftime(dtnow,"%m-%d-%Y"))
                dttime = str(dtnow.hour) + ":" + str(dtnow.minute)
 
-               if os.path.isfile(complete_name) and ext not in (".asc", ".gpg", ".sig.asc", ".p7s", ".sig"):
+               if os.path.isfile(complete_name):
 
                   if usecolor == 'color':
                      print('\n\033[33m' + complete_name + '\033[0m already exists, skipping.. \n')
@@ -1027,6 +1363,16 @@ def getimap(emailaddr, emailpass, imap_server, sslcon, folder):
                   logging.info('skipping existing file: %s' % complete_name)
 
                else:
+               
+                  if type(body) is str or type(body) is buffer and isattach is True:
+                     if usecolor == 'color':
+                        print('\n\033[34mdownloading file: \033[33m' + str(file_name) + '\033[0m\n')
+                     else:
+                        print('\ndownloading file: %s \n' + str(file_name))
+                     bodyfile = open(complete_name, 'wb+')
+                     bodyfile.seek(0)
+                     bodyfile.write(body)
+                     bodyfile.close()
 
                   if ext == ".asc":
                      logging.info('downloading encrypted PGP message: %s' % str(file_name))
@@ -1038,10 +1384,6 @@ def getimap(emailaddr, emailpass, imap_server, sslcon, folder):
                      bodyfile = open(complete_name, 'wb+')
                      bodyfile.seek(0)
                      bodyfile.write(body)
-                     print('''\n***DEBUG: line 1011:
-                        bodyfile.write(body) wrote to file:
-                        \n''')
-                     print(str(body))
                      bodyfile.close()
                      
                      if use_gpg == 1:
@@ -1050,7 +1392,8 @@ def getimap(emailaddr, emailpass, imap_server, sslcon, folder):
                         #rmsg = rbodyfile.read()
                         #rmsg = str(rmsg)
                         decrypted = complete_name[:-4] + '-dec.htm'
-                        decrypted_data = gpg.decrypt(body)
+                        decryptext = complete_name[:-4] + '-dec.txt'
+                        decrypted_data = gpg.decrypt(body, always_trust=True, output=decryptext)
                         #decrypted_data = gpg.decrypt_file(rbodyfile, always_trust=True)
                         if decrypted_data.trust_level is not None and decrypted_data.trust_level >= decrypted_data.TRUST_FULLY:
                            print('\ntrust level: %s \n' % decrypted_data.trust_text)
@@ -1061,7 +1404,7 @@ def getimap(emailaddr, emailpass, imap_server, sslcon, folder):
                         else:
                            print('\ndecrypted message saved as: %s \n' % decrypted)
                            
-                  if ext == ".gpg":
+                  elif ext == ".gpg":
                      logging.info('downloading encrypted file attachment: %s' % str(file_name))
                      if usecolor == 'color':
                         print('\n\033[34mdownloading encrypted file attachment: \033[33m %s \033[0m\n' % str(file_name))
@@ -1075,31 +1418,19 @@ def getimap(emailaddr, emailpass, imap_server, sslcon, folder):
                      
                      if use_gpg == 1:
                         gpg = gnupg.GPG(gnupghome=gpgdir, use_agent=True)
-                        gpgfile = open(complete_name, 'rb+')
-                        efile = gpgfile.read()
-                        decrypted = complete_name[:-4] + '-dec.txt'
-                        decrypted_data = gpg.decrypt(efile, always_trust=True, output=decrypted)
+                        dfile = open(complete_name, 'rb+')
+                        decrypted = complete_name + '-dec.txt'
+                        decrypted_data = gpg.decrypt_file(dfile, always_trust=True, output=decrypted)
                         if decrypted_data.trust_level is not None and decrypted_data.trust_level >= decrypted_data.TRUST_FULLY:
                            print('\ntrust level: %s \n' % decrypted_data.trust_text)
                         logging.info('trust level for message %s: %s - %s' % (complete_name, decrypted_data.trust_level, decrypted_data.trust_text))
-                        logging.info('saved decrypted data: %s' % decrypted)
+                        logging.info('saved decrypted message: %s' % decrypted)
                         if usecolor == 'color':
-                           print('\n\033[37mdecrypted data saved as: \033[32m%s \033[0m\n' % decrypted)
+                           print('\n\033[37mdecrypted message saved as: \033[32m%s \033[0m\n' % decrypted)
                         else:
                            print('\ndecrypted message saved as: %s \n' % decrypted)
-                        
-                        if decrypted_data is not None:
-                           print('\n***GnuPG INFO:*** \n')
-                           print('username: %s' % decrypted_data.username)
-                           print('key id: %s' % decrypted_data.key_id)
-                           print('signature id: %s' % decrypted_data.signature_id)
-                           print('signature timestamp: %s' % decrypted_data.sig_timestamp)
-                           print('fingerprint: %s' % decrypted_data.fingerprint)
-                           print('\n***************** \n')
-                        
-                        gpgfile.close()
                   
-                  if ".sig" in ext:
+                  elif ".sig" in ext:
                      if usecolor == 'color':
                         print('\n\033[34mdownloading PGP signature for sender: %s \033[0m\n' % msgfrom)
                      else:
@@ -1111,12 +1442,10 @@ def getimap(emailaddr, emailpass, imap_server, sslcon, folder):
                      bodyfile.close()
                      if use_gpg == 1:
                         print('\nverifying signature: %s \n' % str(file_name))
-                           
                         # gnupg.GPG(binary=None, homedir=None, verbose=False, use_agent=False, keyring=None, secring=None, options=None)
-                        gpg = gnupg.GPG(gnupghome=gpgdir, verbose=True, use_agent=True)
-                        verfile = open(complete_name, 'rb+')
-                        verdata = verfile.read()
-                        verify = gpg.verify(verdata)
+                        gpg = gnupg.GPG(verbose=True, use_agent=True)
+                        verfile = open(complete_name, 'r+')
+                        verify = gpg.verify(body)
                         if usecolor == 'color':
                            print(ac.GREENBOLD + '\n***verified***\n' + ac.CLEAR) if verify else print(ac.YELLOWBOLD + '\n***unverified***\n' + ac.CLEAR)
                         else:
@@ -1126,18 +1455,12 @@ def getimap(emailaddr, emailpass, imap_server, sslcon, folder):
                         else:
                            logging.info('signature NOT VERIFIED for message: ' + str(file_name))
                         verfile.close()
-                   
-                  if type(body) is str or type(body) is buffer and isattach is True:
-                     if usecolor == 'color':
-                        print('\n\033[34mdownloading file: \033[33m' + str(file_name) + '\033[0m\n')
-                     else:
-                        print('\ndownloading file: %s \n' + str(file_name))
-                     bodyfile = open(complete_name, 'wb+')
-                     # bodyfile.seek(0)
-                     bodyfile.write(body)
-                     bodyfile.close()
                          
-                  if ext not in ('.sig', '.sig.asc', '.gpg', '.sig'):
+                  else:
+                     if usecolor == 'color':
+                        print('\n\033[34msaved message to file: \033[33m' + str(file_name) + '\033[0m\n')
+                     else:
+                        print('\nsaved message to file: %s \n' + str(file_name))
                      bodyfile = open(complete_name, 'wb+')
                      bodyfile.write("SENDER: \n")
                      bodyfile.write(msgfrom)
@@ -1150,14 +1473,6 @@ def getimap(emailaddr, emailpass, imap_server, sslcon, folder):
                      bodyfile.write('saved on: ' + dtdate + ', ' + dttime)
                      bodyfile.write('\n')
                      bodyfile.close()
-
-                  if usecolor == 'color':
-
-                     print('\033[36m\033[1mmessage data saved to new file:\033[35m %s \033[0m\n' % complete_name)
-
-                  else:
-
-                     print('message data saved to new file: %s \n' % complete_name)
                
                if usecolor == 'color':
                   print('\n\033[37m------------------------------------------------------------\033[0m\n')
@@ -1167,11 +1482,11 @@ def getimap(emailaddr, emailpass, imap_server, sslcon, folder):
 
             if usecolor == 'color':
 
-               print('\033[32m%s contents successfully saved to file. YAY! \033[0m\n' % folder)
+               print('\n\033[32minbox contents successfully saved to file. YAY! \033[0m\n')
 
             else:
 
-               print('%s contents successfully saved to file. YAY!\n' % folder)
+               print('\ninbox contents successfully saved to file. YAY!\n')
             
             logging.info('inbox contents for %s written to file.' % str(emailaddr))
 
@@ -1210,9 +1525,8 @@ def getimap(emailaddr, emailpass, imap_server, sslcon, folder):
             print('IMAPLIB ERROR: ' + str(e) + '\n')
             
          attempts -= 1
-         for folder in 'INBOX', 'INBOX.Sent', 'INBOX.Archive', 'INBOX.Drafts', 'INBOX.Junk', 'INBOX.Outbox', 'INBOX.Trash':
-            print('\n1181 getting folder: %s \n' % folder)
-            getimap(emailaddr, emailpass, imap_server, sslcon, folder)
+         print('\ngetting inbox contents for: %s \n' % emailaddr)
+         getimap(emailaddr, emailpass, imap_server, sslcon)
          break
          
       except server.error as e:
@@ -1233,9 +1547,7 @@ def getimap(emailaddr, emailpass, imap_server, sslcon, folder):
          atdomain = re.search("@.*", emailaddr).group()
          emaildomain = atdomain[1:]
    
-         for folder in 'INBOX', 'INBOX.Sent', 'INBOX.Archive', 'INBOX.Drafts', 'INBOX.Junk', 'INBOX.Outbox', 'INBOX.Trash':
-            print('\n1204 getting folder: %s \n' % folder)
-            getimap(emailaddr, emailpass, imap_server, sslcon, folder)
+         getimap(emailaddr, emailpass, imap_server, sslcon)
          break
             
    if attempts is 0:
@@ -1243,7 +1555,8 @@ def getimap(emailaddr, emailpass, imap_server, sslcon, folder):
       logging.error('too many logon failures for %s! could not authenticate to IMAP server: %s' % (emailaddr, imap_server))
       logging.error('reached maximum number of failed logon attempts. quitting program.')
       sys.exit(1)
-# END OF FUNCTION getimap(emailaddr, emailpass, imap_server, sslcon, folder)
+# END OF FUNCTION getimap(emailaddr, emailpass, imap_server, sslcon)
+
 
 ############################
 # MULTIPLE EMAIL ADDRESSES #
@@ -1274,9 +1587,13 @@ if qtyemail == '2':
          pwlistfile = raw_input('the path to the word list file you entered is not valid. please check the file and enter again --> ')
          logging.warning('invalid path for word list file: %s' % str(pwlistfile))
 
+      print('')
+      
       encryptsel = raw_input('is the word list encrypted using encryptlist.py? Y/N --> ')      
       while not re.match(r'^[nNyY]$', encryptsel):
          encryptsel = raw_input('invalid selection. enter Y if word list was encrypted using encryptlist.py or N if not encrypted --> ')
+      
+      print('')
       
       #############################
       # UNENCRYPTED PASSWORD LIST #
@@ -1287,6 +1604,8 @@ if qtyemail == '2':
          b64sel = raw_input('is the word list base64-encoded using encodelist.py? Y/N --> ')
          while not re.search(r'^[nNyY]$', b64sel):
             b64sel = raw_input('invalid selection. enter Y if word list is base64-encoded or N if plain text --> ')
+         
+         print('')
 
          if b64sel.lower() == 'n':         
             gotoencsel = raw_input('storing passwords in plaintext is a security risk. \nenter 1 to encrypt the contents of your password list. \nenter 2 to use base64 encoding. enter 3 to continue with a plaintext password list. --> ')
@@ -1310,7 +1629,7 @@ if qtyemail == '2':
                pwlistfile = newpwlistfile
             else:
                logging.warning('password list stored in plain text is a security risk.')
-               print('*** to encrypt your list in the future, run \'python encryptlist.py\'. to  base64-encode your list in the future, run \'python encodelist.py\' ***')
+               print('\n*** to encrypt your list in the future, run \'python encryptlist.py\'. to  base64-encode your list in the future, run \'python encodelist.py\' *** \n')
          else:
             logging.info('using base64 decoding for password list.')
 
@@ -1400,7 +1719,7 @@ if qtyemail == '2':
             print(ac.PINKBOLD + a + ac.CLEAR)
          else:
             print(a)
-         print('')
+         print('\n')
             
       # TRYING PASSWORD LIST ENTRIES ON EMAIL LOGIN               
       print("\nusing word list: ")
@@ -1408,7 +1727,7 @@ if qtyemail == '2':
          print(ac.YELLOWBOLD + pwlistfile + ac.CLEAR)
       else:
          print(pwlistfile)
-      print('')
+      print('\n')
       logging.info('using word list file: %s' % str(pwlistfile))
 
       lnemail = ''
@@ -1493,7 +1812,10 @@ if qtyemail == '2':
                socket.getaddrinfo(imap_server,0)
             except:
                pass
+               print('\ncould not resolve DNS for %s. ' % imap_server)
                imap_server = 'mail.' + emaildomain
+               print('trying %s instead...\n' % imap_server)
+               logging.warning('imap.' + emaildomain + ' failed to resolve to an IP address. trying mail.' + emaildomain)
             
             res_server, res_ip = resolveimap(imap_server)
             
@@ -1512,10 +1834,8 @@ if qtyemail == '2':
                
             else:
                logging.info('LOGIN to %s successful' % emailaddr)
-               #getimap(lnemail, lnpass, res_ip, sslcon)
-               for folder in 'INBOX', 'INBOX.Sent', 'INBOX.Archive', 'INBOX.Drafts', 'INBOX.Junk', 'INBOX.Outbox', 'INBOX.Trash':
-                  print('\n1478 getting folder: %s \n' % folder)
-                  getimap(lnemail, lnpass, imap_server, sslcon, folder)
+               getimap(lnemail, lnpass, res_ip, sslcon)
+               
          # EMAIL AND PASSWORD IN SEPARATE FILES
          else:
             
@@ -1526,6 +1846,15 @@ if qtyemail == '2':
 
             imap_server = 'imap.' + emaildomain
             imap_port = 993
+            
+            try:
+               socket.getaddrinfo(imap_server,0)
+            except:
+               pass
+               print('\ncould not resolve DNS for %s. ' % imap_server)
+               imap_server = 'mail.' + emaildomain
+               print('trying %s instead...\n' % imap_server)
+               logging.warning('imap.' + emaildomain + ' failed to resolve to an IP address. trying mail.' + emaildomain)
             
             res_server, res_ip = resolveimap(imap_server)
             
@@ -1582,22 +1911,23 @@ if qtyemail == '2':
 
                else:
                   print('\nYAY! login succeeded for account %s using entry on line %d from password list file %s.\n' % (str(lnemail),tries, str(pwlistfile)))
-                  showpass = raw_input('to reveal the correct, unencrypted password to authenticate the account, type SHOW. otherwise, press ENTER to continue. ***WARNING: THIS IS NOT SECURE AND CAN BE VIWEWED BY ANYONE WITH ACCESS TO YOUR TERMINAL OUTPUT*** --> ')
-                  if showpass.lower() == 'show':
-                     if usecolor == 'color':
-                        print('\n\033[35;1maccount:\033[0m %s \n' % lnemail)
-                        print('\n\033[32;1mpassword:\033[0m %s \n' % lnpass)
-                     else:
-                        print('\naccount: %s \n' % lnemail)
-                        print('\npassword: %s \n' % lnpass)
-                     print('\nCLEARING SCREEN IN 3 seconds...\n')
-                     time.sleep(3)
-                     os.system('clear')
                   
-                  for folder in ('INBOX', 'SENT', 'DRAFTS', 'JUNK', 'OUTBOX', 'ARCHIVE'):
-                     print('\ngetting mailbox contents for %s...\n' % folder)
-                     logging.info('LOGIN to %s successful! getting mailbox contents...' % lnemail)
-                     getimap(lnemail, lnpass.strip(), imap_server, sslcon, folder)
+                  if passprompt == 1:
+                     showpass = raw_input('to reveal the correct, unencrypted password to authenticate the account, type SHOW. otherwise, press ENTER to continue. ***WARNING: THIS IS NOT SECURE AND CAN BE VIWEWED BY ANYONE WITH ACCESS TO YOUR TERMINAL OUTPUT*** --> ')
+                     if showpass.lower() == 'show':
+                        if usecolor == 'color':
+                           print('\n\033[35;1maccount:\033[0m %s \n' % lnemail)
+                           print('\n\033[32;1mpassword:\033[0m %s \n' % lnpass)
+                        else:
+                           print('\naccount: %s \n' % lnemail)
+                           print('\npassword: %s \n' % lnpass)
+                        print('\nCLEARING SCREEN IN 3 seconds...\n')
+                        time.sleep(3)
+                        os.system('clear')
+                  
+                  print('\ngetting mailbox contents for %s...\n' % lnemail)
+                  logging.info('LOGIN to %s successful! getting mailbox contents...' % lnemail)
+                  getimap(lnemail, lnpass.strip(), imap_server, sslcon)
                   tries = 100
                   break
 
@@ -1693,6 +2023,16 @@ if qtyemail == '2':
             imap_server = 'imap.' + emaildomain
             imap_port = 993
             
+            
+            try:
+               socket.getaddrinfo(imap_server,0)
+            except:
+               pass
+               print('\ncould not resolve DNS for %s. ' % imap_server)
+               imap_server = 'mail.' + emaildomain
+               print('trying %s instead...\n' % imap_server)
+               logging.warning('imap.' + emaildomain + ' failed to resolve to an IP address. trying mail.' + emaildomain)
+            
             if usecolor == 'color':
                print(ac.YELLOW + 'based on email address, using IMAP server: ' + ac.PINKBOLD + imap_server + ac.CLEAR)
             else:
@@ -1718,15 +2058,14 @@ if qtyemail == '2':
                if 'OK' in loginok:
                   break
                else:
-                  print('\nlogin failure. trying next entry.. \n  ')
+                  print('\nlogin failure. trying next entry.. \n ')
                   continue
 
             efcount += 1
 
             logging.info('LOGIN to %s successful' % lnemail)
-            for folder in ('INBOX', 'INBOX.Sent', 'INBOX.Drafts', 'INBOX.Junk', 'INBOX.Outbox', 'INBOX.Archive'):
-               print('\n1689 getting folder contents for %s.. \n' % folder)
-               getimap(lnemail, lnpass, res_ip, sslcon, folder)
+            print('\ngetting inbox contents for %s.. \n' % lnemail)
+            getimap(lnemail, lnpass, res_ip, sslcon)
 
       if efcount > eflen:
          print("\nall emails and passwords have been processed. exiting program.. \n")
@@ -1744,34 +2083,8 @@ else:
    #VALIDATE EMAIL USING REGEX
    match = re.search(r'^[_a-zA-Z0-9-]+(\.[_a-zA-Z0-9-]+)*@[a-zA-Z0-9-]+(\.[a-zA-Z0-9-]+)*(\.[a-zA-Z]{2,15})$', emailaddr)
 
-   # VALID EMAIL
-   if match:
-      if usecolor == 'color':
-         print('\033[32m\nemail is valid\033[0m\n')
-
-      else:
-         print('\nemail is valid\n')
-      
-      atdomain = re.search("@.*", emailaddr).group()
-      emaildomain = atdomain[1:]
-
-      imap_server = 'imap.' + emaildomain
-      imap_port = 993
-      
-      print('\nchecking for IMAP server at %s...\n' % imap_server)
-      
-      # TRY TO RESOLVE IMAP SERVER
-      res_server, res_ip = resolveimap(imap_server)
-      
-      if len(res_server) < 1 or len(res_ip) < 1:
-         res_server, res_ip = resolveimap(imap_server)
-      
-      imap_server = res_server
-
-      logging.info('trying server %s on port %s' % (imap_server, imap_port))
-   
    # INVALID EMAIL   
-   else:
+   if not match:
       tries = 0
 
       while tries < 5:
@@ -1789,6 +2102,8 @@ else:
          logging.warning('submitted invalid email format %s times' % str(tries))
 
          emailaddr = raw_input('please enter email again --> ')
+         
+         match = re.search(r'^[_a-zA-Z0-9-]+(\.[_a-zA-Z0-9-]+)*@[a-zA-Z0-9-]+(\.[a-zA-Z0-9-]+)*(\.[a-zA-Z]{2,15})$', emailaddr)
 
          # VALID EMAIL
          if match:
@@ -1813,9 +2128,10 @@ else:
       # GOOD EMAIL FORMAT
       elif tries == 100:
          if usecolor == 'color':
-            print('\n\033[32m email is valid \033[0m')
+            print('\n\033[32m email is valid \033[0m\n')
          else:
-            print('email is valid')
+            print('\nemail is valid\n')
+         logging.info('email is valid: %s' % str(emailaddr.strip()))
       
       # OTHER ERROR
       else:
@@ -1825,6 +2141,41 @@ else:
             print('ERROR: unhandled exception. aborting..\n')
          logging.error('unhandled exception. aborting program.')
          sys.exit(1)
+
+   # VALID EMAIL
+   else:
+      if usecolor == 'color':
+         print('\033[32m\nemail is valid\033[0m\n')
+      else:
+         print('\nemail is valid\n')
+      logging.info('email is valid: %s' % str(emailaddr.strip()))
+      
+   atdomain = re.search("@.*", emailaddr).group()
+   emaildomain = atdomain[1:]
+
+   imap_server = 'imap.' + emaildomain
+   imap_port = 993
+         
+   try:
+      socket.getaddrinfo(imap_server,0)
+   except:
+      pass
+      print('\ncould not resolve DNS for %s. ' % imap_server)
+      imap_server = 'mail.' + emaildomain
+      print('trying %s instead...\n' % imap_server)
+      logging.warning('imap.' + emaildomain + ' failed to resolve to an IP address. trying mail.' + emaildomain)
+   
+   print('\nchecking for IMAP server at %s...\n' % imap_server)
+   
+   # TRY TO RESOLVE IMAP SERVER
+   res_server, res_ip = resolveimap(imap_server)
+   
+   if len(res_server) < 1 or len(res_ip) < 1:
+      res_server, res_ip = resolveimap(imap_server)
+   
+   imap_server = res_server
+
+   logging.info('trying server %s on port %s' % (imap_server, imap_port))
 
    # USING PASSWORD LIST
    if usewordlist.lower() == 'y':
@@ -1848,15 +2199,18 @@ else:
             b64sel = raw_input('invalid selection. enter Y if word list is base64-encoded or N if plain text --> ')
             print('')
 
+         # IF PASSWORD LIST NOT BASE64 ENCODED
          if b64sel.lower() == 'n':         
             gotoencsel = raw_input('storing passwords in plaintext is a security risk. \nenter 1 to encrypt the contents of your password list. \nenter 2 to use base-64 encoding. enter 3 to continue with a plaintext password list. --> ')
             while not re.search(r'^[1-3]$', gotoencsel):
                gotoencsel = raw_input('invalid selection. enter 1 to run script to encrypt your password list. \nenter 2 to base64-encode it. or enter 3 to continue with plaintext list --> ')
+            # LAUNCH TO ENCRYPT PASSWORD LIST
             if gotoencsel == '1':
                print("\nlaunching encryptlist.py.. \n")
                import encryptlist
                pwlistfile = encryptlist.encryptlist()
                encryptsel = 'y'
+            # LAUNCH TO BASE64 ENCODE PASSWORD LIST
             elif gotoencsel == '2':
                newpwlistfile = raw_input('please enter a filename for the generated encoded list --> ')
                while not re.match(r'^[\w\-. ]+$', newpwlistfile):
@@ -1959,20 +2313,21 @@ else:
             if 'OK' in loginok:
                logging.info('INFO: LOGIN to %s successful' % emailaddr)
                print('\nYAY! login succeeded for account %s using entry on line %d from password list file %s.\n' % (str(emailaddr), count, str(pwlistfile)))
-               showpass = raw_input('to reveal the correct, unencrypted password to authenticate the account, type SHOW. \notherwise, press ENTER to continue. \n***WARNING: THIS IS NOT SECURE AND CAN BE VIWEWED BY ANYONE WITH ACCESS TO YOUR TERMINAL OUTPUT*** --> ')
-               if showpass.lower() == 'show':
-                  if usecolor == 'color':
-                     print('\n\033[35;1maccount:\033[0m %s \n' % emailaddr)
-                     print('\n\033[32;1mpassword:\033[0m %s \n' % emailpass)
-                  else:
-                     print('\naccount: %s \n' % emailaddr)
-                     print('\npassword: %s \n' % emailpass)
-                  print('\nCLEARING SCREEN IN 3 seconds...\n')
-                  time.sleep(3)
-                  os.system('clear')
-               for folder in ('INBOX', 'SENT', 'DRAFTS', 'JUNK', 'OUTBOX', 'ARCHIVE'):
-                  print('\ngetting mailbox contents... for %s \n' % folder)
-                  getimap(emailaddr, emailpass, imap_server, sslcon, folder)
+               if passprompt == 1:
+                  showpass = raw_input('to reveal the correct, unencrypted password to authenticate the account, type SHOW. \notherwise, press ENTER to continue. \n***WARNING: THIS IS NOT SECURE AND CAN BE VIWEWED BY ANYONE WITH ACCESS TO YOUR TERMINAL OUTPUT*** --> ')
+                  if showpass.lower() == 'show':
+                     if usecolor == 'color':
+                        print('\n\033[35;1maccount:\033[0m %s \n' % emailaddr)
+                        print('\n\033[32;1mpassword:\033[0m %s \n' % emailpass)
+                     else:
+                        print('\naccount: %s \n' % emailaddr)
+                        print('\npassword: %s \n' % emailpass)
+                     print('\nCLEARING SCREEN IN 3 seconds...\n')
+                     time.sleep(3)
+                     os.system('clear')
+               
+               print('\ngetting mailbox contents... \n')
+               getimap(emailaddr, emailpass, imap_server, sslcon)
                   
                if usecolor == 'color':
                   print("\ninbox contents have been saved to file for account: " + ac.OKAQUA + emailaddr + ac.CLEAR + "\n")
@@ -2001,30 +2356,29 @@ else:
          else:
             logging.info('LOGIN to %s successful!' % emailaddr)
             print('\nYAY! login succeeded for account %s using entry on line %d from password list file %s.\n' % (str(emailaddr),count, str(pwlistfile)))
-            showpass = raw_input('to reveal the correct, unencrypted password to authenticate the account, type SHOW. \notherwise, press ENTER to continue. \n***WARNING: THIS IS NOT SECURE AND CAN BE VIWEWED BY ANYONE WITH ACCESS TO YOUR TERMINAL OUTPUT*** --> ')
-            if showpass.lower() == 'show':
-               if usecolor == 'color':
-                  print('\n\033[35;1maccount:\033[0m %s \n' % emailaddr)
-                  print('\n\033[32;1mpassword:\033[0m %s \n' % emailpass)
-               else:
-                  print('\naccount: %s \n' % emailaddr)
-                  print('\npassword: %s \n' % emailpass)
-               print('\nCLEARING SCREEN IN 3 seconds...\n')
-               time.sleep(3)
-               os.system('clear')
+            if passprompt == 1:
+               showpass = raw_input('to reveal the correct, unencrypted password to authenticate the account, type SHOW. \notherwise, press ENTER to continue. \n***WARNING: THIS IS NOT SECURE AND CAN BE VIWEWED BY ANYONE WITH ACCESS TO YOUR TERMINAL OUTPUT*** --> ')
+               if showpass.lower() == 'show':
+                  if usecolor == 'color':
+                     print('\n\033[35;1maccount:\033[0m %s \n' % emailaddr)
+                     print('\n\033[32;1mpassword:\033[0m %s \n' % emailpass)
+                  else:
+                     print('\naccount: %s \n' % emailaddr)
+                     print('\npassword: %s \n' % emailpass)
+                  print('\nCLEARING SCREEN IN 3 seconds...\n')
+                  time.sleep(3)
+                  os.system('clear')
+                  
             count = 100
             tries = -1
             print('\ngetting mailbox contents...\n')
 
-            #getimap(emailaddr, emailpass.strip(), imap_server, sslcon)
+            getimap(emailaddr, emailpass.strip(), imap_server, sslcon)
             
-            for folder in 'INBOX', 'INBOX.Sent', 'INBOX.Archive', 'INBOX.Drafts', 'INBOX.Junk', 'INBOX.Outbox', 'INBOX.Trash':
-               print('\n1977 getting folder: %s \n' % folder)
-               getimap(emailaddr, emailpass.strip(), imap_server, sslcon, folder)
             #homedir = os.path.expanduser("~")
             #rootdir = os.path.join(homedir, 'email-output')
             rootdir = savedir
-            print("\n%s contents saved to directory: %s \n" % (folder, rootdir))
+            print("\ninbox contents saved to directory: %s \n" % rootdir)
             print("\nexiting program..\n")
             sys.exit(0)
             break
@@ -2076,24 +2430,17 @@ else:
          
       elif prompts == -1:
       
-         #getimap(emailaddr, emailpass, imap_server, sslcon)
-         
-         
-            
-         for folder in 'INBOX', 'INBOX.Sent', 'INBOX.Archive', 'INBOX.Drafts', 'INBOX.Junk', 'INBOX.Outbox', 'INBOX.Trash':
-            print('\n2038 getting folder: %s \n' % folder)
-            getimap(emailaddr, emailpass.strip(), imap_server, sslcon, folder)
-         
+         getimap(emailaddr, emailpass, imap_server, sslcon)
          #homedir = os.path.expanduser("~")
-            #rootdir = os.path.join(homedir, 'email-output')
-            rootdir = savedir
-            rootdir = os.path.join(savedir, folder)
-            if usecolor == 'color':
-               print("\ninbox contents have been saved to file for email: " + ac.OKAQUA + emailaddr + ac.CLEAR)
-            else:
-               print("\ninbox contents have been saved to file for email: %s" % emailaddr)
-            logging.info('saved inbox contents to file for %s' % emailaddr)
-            print("\nmailbox items can be found in directory: %s \n" % savedir)
+         #rootdir = os.path.join(homedir, 'email-output')
+         rootdir = savedir
+         #rootdir = os.path.join(savedir, folder)
+         if usecolor == 'color':
+            print("\ninbox contents have been saved to file for email: " + ac.OKAQUA + emailaddr + ac.CLEAR)
+         else:
+            print("\ninbox contents have been saved to file for email: %s" % emailaddr)
+         logging.info('saved inbox contents to file for %s' % emailaddr)
+         print("\nmailbox items can be found in directory: %s \n" % savedir)
          
       else:
          print("\nLOGIN FAILED: an unknown error has occurred.\n")
@@ -2105,4 +2452,4 @@ else:
 logging.info("exited application.")
 logging.shutdown()
 print("\nthanks for using EMAIL2FILE! \nexiting program..\n")
-sys.exit(0)
+sys.exit(0)		
