@@ -1,8 +1,8 @@
 #!/usr/bin/env python
 #
-##### EMAIL2FILE v2.4!
+##### EMAIL2FILE v2.5!
 ##### AUTHOR: vvn < root @ nobody . ninja >
-##### VERSION RELEASE: March 20, 2017
+##### VERSION RELEASE: March 23, 2017
 ##### GPG KEY ID: D52CB53F
 ##### GPG fingerprint: E8EA 199E 7F78 DA61 63F7  0477 41E3 DA23 D52C B53F
 #
@@ -16,6 +16,10 @@
 ##### "python encodelist.py" to base64-encode or "python encryptlist.py" to
 ##### encrypt the list, or select the option to encode or encrypt the list
 ##### while running this script (email2file.py). 
+#####
+##### **GMAIL users: make sure your security setting allows 3rd party
+##### applications. if you use two-factor authentication, you will have
+##### to generate an application password and use that to log in.
 ##### 
 ##### ENCRYPTION NOW FULLY WORKING FOR PASSWORD LISTS!
 ##### the feature has now been fully integrated into the main script!
@@ -35,10 +39,6 @@
 ##### ALSO *FINALLY* GOT MULTIPLE FILE ATTACHMENTS WORKING! they even
 ##### get saved in the proper encoding!
 #
-##### not just multiple file attachments works now, you can also
-##### decrypt ENCRYPTED FILE ATTACHMENTS automatically with your
-##### GPG keyring!
-#####
 ##### TO RUN SCRIPT: open terminal to script directory and enter:
 ##### "python email2file.py"
 #
@@ -72,13 +72,16 @@
 ##### logs will be saved in the 'logs' folder inside the 'emails' directory
 ##### or the user-specified location.
 #####
-##### ****KNOWN BUGS v 2.40 (3/16/2017):****
+##### ****KNOWN BUGS v 2.5 (3/23/2017):****
 ##### - socket.error "[Errno 54] Connection reset by peer"
 #####   will interrupt the script execution. in case that it happens,
 #####   just start the script again:
 #####     python email2file.py or chmod +x *.py && ./email2file.py
 ##### - GPG signature verification always seems to fail, usually with
 #####   969 bytes-sized files named "signature.asc"
+##### - email.errors.HeaderParseError exception happens running decode_header
+#####   in subject that has a different encoding in the middle (ex. "this is
+#####   in plain text =?UTF-8?xxxxxxxxxxxxx")
 ##### - i have not caught every single obscure parsing/encoding exception
 #####   so don't freak if one happens. there are a couple i am currently
 #####   working on that should hopefully be fixed in an upcoming update.
@@ -148,7 +151,7 @@ except:
 
 colorintro = '''
 \033[34m=====================================\033[33m
----------\033[36m EMAIL2FILE v2.4 \033[33m-----------
+---------\033[36m EMAIL2FILE v2.5 \033[33m-----------
 -------------------------------------
 -----------\033[35m author : vvn \033[33m------------
 ---------\033[32m root@nobody.ninja \033[33m---------
@@ -162,7 +165,7 @@ colorintro = '''
 
 cleanintro = '''
 =====================================
---------- EMAIL2FILE v2.4 -----------
+--------- EMAIL2FILE v2.5 -----------
 -------------------------------------
 ----------- author : vvn ------------
 --------- root@nobody.ninja ---------
@@ -361,6 +364,8 @@ def resolveimap(imap_server):
       if len(resolved_ips) > 1:
          if len(str(resolved_ips[3])) > 1:
             server_ip = resolved_ips[3][0]
+         elif len(str(resolved_ips[2])) > 1:
+            server_ip = resolved_ips[2][0]
          else:
             server_ip = resolved_ips[4][0]
          if usecolor == 'color':
@@ -1475,7 +1480,7 @@ def getimap(emailaddr, emailpass, imap_server, sslcon):
                         if gcontent_type == 'text/plain':
                            att = False
                            gdecoded = unicode(g.get_payload(decode=True), str(gcharset), "ignore").encode('utf8', 'replace').strip()
-                           enc = msg['Content-Transfer-Encoding']
+                           enc = g['Content-Transfer-Encoding']
                            if enc == "base64":
                               gdecoded = g.get_payload()
                               gdecoded = base64.decodestring(gdecoded)
